@@ -2885,7 +2885,7 @@ class Chain {
 }
 
 // the kælk (LEVEL LAYOUT's SLED) is under him while sliding down the chute and during the jump off its kicker
-function onSled(P, g) { try { return typeof SLED !== 'undefined' && !!SLED && ((SLED.on && P.state === 'slide') || (SLED.air && !g)); } catch (e) { return false; } }
+function onSled(P, g) { try { return (typeof SLED !== 'undefined' && !!SLED && ((SLED.on && P.state === 'slide') || (SLED.air && !g))) || KAELK.mode === 'lift' || (KAELK.mode === 'hill' && (P.state === 'slide' || !g)); } catch (e) { return false; } }
 class VikingAnim {
   constructor(v) {
     this.v = v; this.t = 0; this.R = mulberry32(1224);
@@ -3598,6 +3598,8 @@ const P = {
   crouch: false, wallN: V3(0, 0, 1), wallT: 0, wallTouch: 9, wallTouchN: V3(0, 0, 1), wallAway: 0, sideflip: false,
   platVel: V3(), airT: 0, airCap: 9.2, speed: 0, inputMag: 0, heading: Math.PI, ledgeT: 9, poundJump: false, crouchLatch: 0, eatGrace: 0,
 };
+// kælk og kælkelift (bygges i LEVEL LAYOUT, afsnittet "Kælker på bakkerne og kælkeliften"): mode = null | 'hill' (kælk på bakken) | 'lift' (liften trækker pigen op)
+const KAELK = { mode: null, accel: 0.5, turn: 2.4, brake: 9, fric: 1.0, flatFric: 4.5, max: 10.5 };
 const WISH = { x: 0, z: 0, mag: 0 }, NOWISH = { x: 0, z: 0, mag: 0 };
 function wishDir() { const f = CAM.yaw; const fx = -Math.sin(f), fz = -Math.cos(f); const rx = Math.cos(f), rz = -Math.sin(f); const x = fx * input.my + rx * input.mx, z = fz * input.my + rz * input.mx; const m = Math.hypot(x, z); if (m > 1e-3) { WISH.x = x / m; WISH.z = z / m; WISH.mag = Math.min(1, m); } else { WISH.x = 0; WISH.z = 0; WISH.mag = 0; } return WISH; }
 const LOCK_STATES = new Set(['poundSpin', 'poundFall', 'poundLand', 'victory', 'eat']); // 'eat': gameplay sets it (risengrød) and returns to 'idle'
@@ -3606,6 +3608,7 @@ const WALL_STATES = new Set(['fall', 'jump', 'double', 'triple', 'longjump', 'wa
 function setState(s) { if (P.state !== s) { P.state = s; P.stateT = 0; } }
 function stepPlayer(dt) {
   P.prev.copy(P.pos);
+  if (KAELK.mode === 'lift' && KAELK.liftStep) { KAELK.liftStep(dt); return; } // kælkeliften: pigen sidder i kælken og trækkes op
   const wasG = P.grounded;
   // ride moving platforms (updateMovers already ran for this step, box.delta = this step's motion)
   if (P.grounded && P.groundBox && P.groundBox.moving) { P.pos.add(P.groundBox.delta); P.platVel.copy(P.groundBox.delta).divideScalar(dt); } else if (P.grounded) P.platVel.set(0, 0, 0);
@@ -3688,7 +3691,22 @@ function doorFunnel(dt, w, H = window.HOUSE) {
   const dv = (want - vlat) * k; P.vel.x += -az * dv; P.vel.z += ax * dv;
 }
 function turnFacing(target, k, dt) { const d = angleDiff(P.facing, target); const step = d * (1 - Math.exp(-k * dt)); P.facing += step; P.turnRate = damp(P.turnRate, step / dt, 12, dt); }
+// kælk på bakken: tyngdekraften trækker ned ad bakken, pilene drejer kælken (uden at give ekstra fart), pil mod kørselsretningen bremser
+function sledMove(dt, w, active) {
+  const n = P.groundN; if (P.state !== 'slide') setState('slide');
+  const sl = Math.sqrt(Math.max(0, 1 - n.y * n.y)), nh = Math.hypot(n.x, n.z), dnx = nh > 1e-5 ? n.x / nh : 0, dnz = nh > 1e-5 ? n.z / nh : 0;
+  const a = CFG.gravity * sl * KAELK.accel; let hx = P.vel.x + dnx * a * dt, hz = P.vel.z + dnz * a * dt, S = Math.hypot(hx, hz);
+  if (active && S > 0.4) {
+    const va = Math.atan2(hx, hz), d = angleDiff(va, Math.atan2(w.x, w.z));
+    if (Math.abs(d) > 2.4) S = Math.max(0, S - KAELK.brake * w.mag * dt);
+    else { const na = va + clamp(d, -KAELK.turn * w.mag * dt, KAELK.turn * w.mag * dt); hx = Math.sin(na) * S; hz = Math.cos(na) * S; }
+  }
+  const fr = KAELK.fric + KAELK.flatFric * (1 - smoothstep(0.04, 0.14, sl)); const ns = Math.min(KAELK.max, Math.max(0, S - fr * dt)), s0 = Math.hypot(hx, hz);
+  if (s0 > 1e-4) { hx *= ns / s0; hz *= ns / s0; } P.vel.x = hx; P.vel.z = hz; P.airCap = Math.max(CFG.runSpeed, ns);
+  if (ns > 0.5) turnFacing(Math.atan2(hx, hz), 8, dt); else P.turnRate = damp(P.turnRate, 0, 8, dt);
+}
 function groundMove(dt, w, active, crouchHeld) {
+  if (KAELK.mode === 'hill' && !P.onIce) { sledMove(dt, w, active); return; }
   const n = P.groundN; let st = P.state;
   let hx = P.vel.x, hz = P.vel.z, S = Math.hypot(hx, hz);
   const W = active ? Math.atan2(w.x, w.z) : P.facing;
@@ -3930,7 +3948,7 @@ function onLand(impact) {
     return;
   }
   // stick released on touchdown = stick the landing (precision hops onto small platforms); holding the stick keeps the momentum for chains
-  if (P.inputMag < 0.1) { const kk = P.onIce ? (P.groundBox ? CFG.landStopIceBox : CFG.landStopIce) : CFG.landStop; P.vel.x *= kk; P.vel.z *= kk; }
+  if (P.inputMag < 0.1 && KAELK.mode !== 'hill') { const kk = P.onIce ? (P.groundBox ? CFG.landStopIceBox : CFG.landStopIce) : CFG.landStop; P.vel.x *= kk; P.vel.z *= kk; }
   else if (P.onIce && P.groundBox) { P.vel.x *= CFG.iceBoxLand; P.vel.z *= CFG.iceBoxLand; } // small icy platforms bite a little on touchdown
   const k = clamp(impact / 25, 0, 1);
   if (impact > 4) { anim.squash(0.08 + k * 0.3); snowPuff(P.pos.x, P.pos.y, P.pos.z, Math.floor(4 + k * 14), 1.5 + k * 3, 0.35 + k * 0.3); Audio.land(k); }
@@ -3938,14 +3956,14 @@ function onLand(impact) {
   if (P.state === 'hurt') setState('idle');
 }
 function hurtPlayer(from) {
-  if (P.invuln > 0 || P.state === 'victory') return;
+  if (P.invuln > 0 || P.state === 'victory' || KAELK.mode === 'lift') return;
   P.health--; updateHearts(); P.invuln = 1.8; Audio.hurt(); CAM.shake = 0.35;
   const dx = P.pos.x - from.x, dz = P.pos.z - from.z; const l = Math.hypot(dx, dz) || 1;
   P.vel.set(dx / l * 7, 8.5, dz / l * 7); P.grounded = false; P.canCut = false; P.crouch = false; setState('hurt'); P.facing = Math.atan2(-dx, -dz);
   sparkleBurst(P.pos.x, P.pos.y + 1, P.pos.z, 12, 1, 0.4, 0.4, 3);
   if (P.health <= 0) { setTimeout(() => { toast('Av, av!', 'Du prøver igen'); respawn(); P.health = 3; updateHearts(); }, 700); }
 }
-function respawn() { P.pos.copy(P.checkpoint); P.pos.y = surfaceAt(P.pos.x, P.pos.z).h + 0.5; P.vel.set(0, 0, 0); P.prev.copy(P.pos); P.stepOff = 0; P.crouch = false; P.wallTouch = 9; setState('fall'); P.invuln = 1.5; CAM.snap = true; }
+function respawn() { if (KAELK.reset) KAELK.reset(); P.pos.copy(P.checkpoint); P.pos.y = surfaceAt(P.pos.x, P.pos.z).h + 0.5; P.vel.set(0, 0, 0); P.prev.copy(P.pos); P.stepOff = 0; P.crouch = false; P.wallTouch = 9; setState('fall'); P.invuln = 1.5; CAM.snap = true; }
 
 // ═════════════════════════ SECTION: ENEMIES ═════════════════════════
 const enemies = []; const snowballs = []; const friends = [];
@@ -4125,11 +4143,11 @@ class Enemy {
   }
   // kontakt med spilleren (kaldes i 120 Hz fysik-steppet)
   contact() {
-    if (!this.alive || !this.m.root.visible) return;
+    if (!this.alive || !this.m.root.visible || KAELK.mode === 'lift') return;
     const dx = P.pos.x - this.pos.x, dz = P.pos.z - this.pos.z; const dp = Math.hypot(dx, dz); if (dp > this.radius + 0.5) return;
     const dy = P.pos.y - this.pos.y; if (dy > this.height + 0.35 || dy < -1.3) return;
     const wasAbove = P.prev.y >= this.pos.y + this.height * 0.45;
-    if (P.state === 'poundFall') { this.kill(P.pos); return; }
+    if (P.state === 'poundFall' || (KAELK.mode === 'hill' && P.speed > 2.5)) { this.kill(P.pos); return; } // kører man ind i et dyr på kælk, bliver det en ven
     if (!P.grounded && P.vel.y <= 0.5 && wasAbove) {
       this.kill(P.pos); P.pos.y = Math.max(P.pos.y, this.pos.y + this.height * 0.6); P.vel.y = input.jumpHeld ? 15 : 11.5; P.grounded = false; P.canCut = input.jumpHeld; setState('jump'); P.jumpCount = 0; P.chainT = 0; anim.onJump(0); CAM.shake = Math.max(CAM.shake, 0.14);
       return;
@@ -4552,6 +4570,7 @@ new Friend(-3.6, 55.6, ANG(3.6, 2.4), [
   'Tænd lanternerne undervejs. Hvis du falder, starter du ved den sidste lanterne.',
   'Psst... der er gemt en gavekasse i sneen her i byen. Find ringen af mønter og hop midt ned i den!',
   'Bag tårnet ligger Kælkebakken! Og hop op på en hoppesnemand - hold hop nede, så flyver du helt til skyerne.',
+  'Ved tårnet står der to kælke - gå hen til en, så kører du ned ad bakken. Og nede ved Kælkebakken er der en lift, der trækker dig op igen!',
 ]);
 for (const [x, z, r] of [[9, 29, 6], [-8, 21, 6], [14, 11, 5], [-14, 5, 6], [-40, 28, 5], [-35, 13, 5], [20, -4, 6], [-20, -20, 7], [28, 12, 6]]) enemies.push(new Enemy('fox', x, z, { range: r, leash: x === -20 ? 2 : undefined }));
 enemies.push(new Enemy('beaver', -34, -25, { patrol: [[-34, -25], [-38, -34], [-34, -25]] }));
@@ -4738,15 +4757,198 @@ const sledMesh = (() => {
   kitMesh(kitDone(k), g, true); g.visible = false; scene.add(g); return g;
 })();
 const _sq = new THREE.Quaternion(), _sq2 = new THREE.Quaternion(), _sUp = V3(0, 1, 0), _sN = V3();
-HOOKS.update.push((dt, t, state) => { if (state === 'pause' || state === 'frozen') { if (Audio.ctx) Audio.sled(0); return; } updateBouncers(dt); if (Audio.ctx) Audio.sled(state === 'play' && SLED.on && P.state === 'slide' ? P.speed : 0); });
+HOOKS.update.push((dt, t, state) => { if (state === 'pause' || state === 'frozen') { if (Audio.ctx) Audio.sled(0); return; } updateBouncers(dt); if (Audio.ctx) Audio.sled(state !== 'play' ? 0 : (SLED.on || KAELK.mode === 'hill') && P.state === 'slide' ? P.speed : KAELK.mode === 'lift' ? 2.5 : 0); });
 HOOKS.render.push((dt) => {
-  const want = (SLED.on && P.state === 'slide') || (SLED.air && !P.grounded) ? 1 : 0; SLED.show = damp(SLED.show, want, want ? 18 : 10, dt);
+  const want = (SLED.on && P.state === 'slide') || (SLED.air && !P.grounded) || KAELK.mode === 'lift' || (KAELK.mode === 'hill' && (P.state === 'slide' || !P.grounded)) ? 1 : 0; SLED.show = damp(SLED.show, want, want ? 18 : 10, dt);
   sledMesh.visible = SLED.show > 0.02; if (!sledMesh.visible) return;
   sledMesh.position.copy(viking.root.position); sledMesh.position.y -= 0.02;
   _sN.copy(P.grounded ? P.groundN : _sUp).lerp(_sUp, 0.25).normalize(); _sq.setFromUnitVectors(_sUp, _sN); _sq2.setFromAxisAngle(_sUp, P.facing); sledMesh.quaternion.copy(_sq).multiply(_sq2);
   sledMesh.scale.setScalar(0.4 + 0.6 * SLED.show);
-  if (SLED.on && P.speed > 4 && rand() < dt * 30) { const f = sledMesh.position; puffs.spawn(f.x + rr(-0.3, 0.3), f.y + 0.05, f.z + rr(-0.3, 0.3), -P.vel.x * 0.15 + rr(-0.5, 0.5), rr(0.5, 1.5), -P.vel.z * 0.15 + rr(-0.5, 0.5), 0.5, 0.3, 0.95, 0.97, 1, 0.7, 3, 2, 1.5); }
+  if ((SLED.on || (KAELK.mode === 'hill' && P.grounded)) && P.speed > 4 && rand() < dt * 30) { const f = sledMesh.position; puffs.spawn(f.x + rr(-0.3, 0.3), f.y + 0.05, f.z + rr(-0.3, 0.3), -P.vel.x * 0.15 + rr(-0.5, 0.5), rr(0.5, 1.5), -P.vel.z * 0.15 + rr(-0.5, 0.5), 0.5, 0.3, 0.95, 0.97, 1, 0.7, 3, 2, 1.5); }
 });
+
+// ═ Kælker på bakkerne og kælkeliften (lavet til de mindste: kun piletaster og mellemrum)
+// 1) Kælkeliften: står man i den gyldne ring ved bunden af Kælkebakken, sætter pigen sig i kælken og trækkes op ad vestsiden til startplatformen.
+// 2) Kælker på bakkerne: to kælke står på kanten af tårnbakken (øst og vest). Går man hen til en, sætter pigen sig og glider ned. Pilene styrer,
+//    mellemrum hopper med kælken, og når den holder stille, kører kælken selv op igen. Kører man ind i et dyr på kælk, bliver det en ven.
+// Afsnittet bruger ikke rand() mens verden bygges, så resten af verden (træer, pynt, dyr) bliver præcis som før.
+{
+  // ── fjern et træ (grafik, kollision og kontaktskygge) hvor en bane skal køre
+  const _z0 = new THREE.Matrix4().makeScale(0, 0, 0), _m4 = new THREE.Matrix4(), _pp = V3(), _qq = new THREE.Quaternion(), _ss = V3();
+  const cutTree = (x, z) => {
+    let t = null, best = 0.6; for (const tr of TREES) { const d = Math.hypot(tr.x - x, tr.z - z); if (d < best) { best = d; t = tr; } }
+    if (!t || t.cut) return; t.cut = true;
+    if (treeBatch) treeBatch.setVisibleAt(t.id, false);
+    for (const arr of grid.values()) for (let i = arr.length - 1; i >= 0; i--) { const b = arr[i]; if (b.noCam && Math.abs(b.c.x - t.x) < 1e-3 && Math.abs(b.c.z - t.z) < 1e-3) arr.splice(i, 1); }
+    const bm = blobs.mesh; for (let i = 0; i < bm.count; i++) { bm.getMatrixAt(i, _m4); _m4.decompose(_pp, _qq, _ss); if (Math.abs(_pp.x - t.x) < 1e-3 && Math.abs(_pp.z - t.z) < 1e-3) bm.setMatrixAt(i, _z0); }
+    bm.instanceMatrix.needsUpdate = true;
+  };
+  // ét træ på østbanen, to på vestbanen og to hvor liften kører
+  for (const [x, z] of [[34.0, 7.0], [-14.5, -1.5], [-37.6, -3.7], [-8.9, -31.26], [-6.82, -38.73]]) cutTree(x, z);
+
+  // bolsjestribede pæle (eget sæt, flettet til ét mesh til sidst)
+  const kit = newKit();
+  const candy = (x, y, z, h, r = 0.085) => {
+    kitAdd(kit.gloss, new THREE.CylinderGeometry(r, r, h, 10, Math.max(6, Math.round(h * 11))), (px, py, pz) => (Math.floor((py + Math.atan2(pz, px) * 0.05 + 10) / 0.16) % 2 ? '#d61f2c' : '#f7f4ee'), x, y + h / 2, z);
+    kitAdd(kit.gloss, SG(r * 1.6, 10, 8), '#ffd24a', x, y + h + 0.03, z);
+    new Box(x, y + h / 2, z, r + 0.03, h / 2, r + 0.03, 0, 0, 0, { noCam: true });
+  };
+
+  // ── 1. Kælkeliften
+  const deckY = TOWER_BASE + 0.32; // toppen af startplatformen ved Kælkebakken
+  const ctrl = [[-6.5, -54], [-7.6, -48], [-8, -40], [-8, -31], [-8, -22], [-7.5, -15], [-6.2, -10.4], [-4.5, -7.7], [-2.7, -7.05], [-0.3, -6.95]];
+  const crv = new THREE.CatmullRomCurve3(ctrl.map(([x, z]) => V3(x, 0, z)), false, 'centripetal');
+  const NS = 360, X = [], Y = [], Z = [];
+  for (let i = 0; i <= NS; i++) { const p = crv.getPointAt(i / NS); X.push(p.x); Z.push(p.z); Y.push(terrainH(p.x, p.z)); }
+  // glat højdekurve der aldrig går ned i sneen, og til sidst en lille trærampe op på startplatformen
+  const T0 = Y.slice(); for (let k = 0; k < 6; k++) for (let i = 1; i < NS; i++) Y[i] = Math.max(T0[i], (Y[i - 1] + 2 * Y[i] + Y[i + 1]) / 4);
+  const RX0 = -4.9, RX1 = -2.4, RZ = -7.02, rampY0 = terrainH(RX0, RZ);
+  for (let i = 0; i <= NS; i++) if (Z[i] > -8.6 && X[i] > RX0) Y[i] = Math.max(T0[i], lerp(rampY0, deckY, smoothstep(RX0, RX1, X[i])));
+  const C = [0]; for (let i = 1; i <= NS; i++) C.push(C[i - 1] + Math.hypot(X[i] - X[i - 1], Y[i] - Y[i - 1], Z[i] - Z[i - 1]));
+  const LEN = C[NS];
+  const at = (s, out) => { s = clamp(s, 0, LEN); let lo = 0, hi = NS; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (C[m] <= s) lo = m; else hi = m; } const u = (s - C[lo]) / Math.max(1e-6, C[hi] - C[lo]); return out.set(lerp(X[lo], X[hi], u), lerp(Y[lo], Y[hi], u), lerp(Z[lo], Z[hi], u)); };
+  const _ta = V3(), _tb = V3();
+  const tan = (s, out) => { at(s - 0.4, _ta); at(s + 0.4, _tb); return out.subVectors(_tb, _ta).normalize(); };
+  // kablet hænger 2,55 m over sporet, 1,55 m ude til siden mod Kælkebakken
+  const C_OFF = 1.55, C_HGT = 2.55, _ct = V3();
+  const cableAt = (s, out) => { at(s, out); tan(s, _ct); const h = Math.hypot(_ct.x, _ct.z) || 1; out.x += _ct.z / h * C_OFF; out.z -= _ct.x / h * C_OFF; out.y += C_HGT; return out; };
+  let iEnd = NS; for (let i = 0; i <= NS; i++) if (Z[i] > -8.6 && X[i] >= RX0) { iEnd = i; break; }
+  const S_C0 = 3.0, S_C1 = C[iEnd];
+  { // pæle og kabel
+    const n = Math.max(2, Math.round((S_C1 - S_C0) / 6.5)), v = V3();
+    for (let k = 0; k <= n; k++) { cableAt(S_C0 + (S_C1 - S_C0) * k / n, v); const by = terrainH(v.x, v.z) - 0.05; candy(v.x, by, v.z, v.y - by); }
+    const pts = []; for (let s = S_C0; s < S_C1; s += 0.5) pts.push(cableAt(s, V3())); pts.push(cableAt(S_C1, V3()));
+    const cable = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), pts.length * 2, 0.022, 5, false), M.darkMetal); cable.castShadow = true; scene.add(cable);
+  }
+  // bundstationen: gylden ring på sneen, en portal med banner og et skilt
+  const ring0 = at(0.4, V3()), t0 = tan(1.0, V3()), side0 = V3(t0.z, 0, -t0.x).normalize();
+  const ringMat = new THREE.MeshBasicMaterial({ color: new THREE.Color().setRGB(2.4, 1.6, 0.45) });
+  const ringGeo = new THREE.TorusGeometry(1.0, 0.06, 8, 48); ringGeo.rotateX(-Math.PI / 2);
+  const ring = new THREE.Mesh(ringGeo, ringMat); ring.position.set(ring0.x, terrainH(ring0.x, ring0.z) + 0.08, ring0.z); scene.add(ring);
+  groundGlow(ring0.x, ring0.z, 1.8, [1.0, 0.72, 0.3], 0.6);
+  { const pc = at(1.7, V3()), tp = tan(1.7, V3()), sd = V3(tp.z, 0, -tp.x).normalize();
+    for (const sg of [-1, 1]) { const x = pc.x + sd.x * sg * 1.45, z = pc.z + sd.z * sg * 1.45; candy(x, terrainH(x, z) - 0.05, z, 3.0, 0.1); }
+    const ban = canvasTex(1024, 192, (c, w, h) => { c.fillStyle = '#f7f1e6'; c.fillRect(0, 0, w, h); c.fillStyle = '#c8102e'; for (let i = 0; i < 22; i++) { c.beginPath(); c.moveTo(i * 48, 0); c.lineTo(i * 48 + 24, 0); c.lineTo(i * 48, 24); c.fill(); c.beginPath(); c.moveTo(i * 48, h); c.lineTo(i * 48 + 24, h); c.lineTo(i * 48, h - 24); c.fill(); }
+      c.font = 'bold 118px Fredoka, Trebuchet MS, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#7a0d18'; c.fillText('KÆLKELIFT', w / 2 + 4, h / 2 + 10); c.fillStyle = '#d61f2c'; c.fillText('KÆLKELIFT', w / 2, h / 2 + 5); });
+    const banner = new THREE.Mesh(new THREE.PlaneGeometry(2.9, 0.54), new THREE.MeshStandardMaterial({ map: ban, roughness: 0.8, side: THREE.DoubleSide, emissive: col('#ffffff'), emissiveMap: ban, emissiveIntensity: 0.18 }));
+    banner.position.set(pc.x, Math.max(terrainH(pc.x + sd.x * 1.45, pc.z + sd.z * 1.45), terrainH(pc.x - sd.x * 1.45, pc.z - sd.z * 1.45)) + 2.62, pc.z); banner.rotation.y = Math.atan2(-tp.x, -tp.z); banner.castShadow = true; scene.add(banner);
+    dirSign(ring0.x - side0.x * 2.2, ring0.z - side0.z * 2.2, [['Kælkelift', Math.atan2(t0.x, t0.z), '#a0342c']]); }
+  // trærampen op på startplatformen (man kan også selv gå op ad den)
+  { const y0 = rampY0, len = Math.hypot(RX1 - RX0, deckY - y0), rz = Math.atan2(deckY - y0, RX1 - RX0), cx = (RX0 + RX1) / 2, cy = (y0 + deckY) / 2 - 0.07;
+    const rampM = new THREE.Mesh(new THREE.BoxGeometry(len + 0.1, 0.14, 1.4), M.plank); rampM.position.set(cx, cy, RZ); rampM.rotation.z = rz; rampM.castShadow = true; rampM.receiveShadow = true; scene.add(rampM);
+    new Box(cx, cy, RZ, (len + 0.1) / 2, 0.07, 0.7, 0, 0, rz); }
+  // hængere der kører op ad kablet (pynt) + pigens egen hænger og reb, mens hun kører
+  const ropeMat = new THREE.MeshStandardMaterial({ color: col('#e8dcc0'), roughness: 0.8 });
+  const stickGeo = new THREE.CylinderGeometry(0.014, 0.014, 0.55, 5); stickGeo.translate(0, -0.275, 0);
+  const discGeo = new THREE.CylinderGeometry(0.13, 0.13, 0.05, 14); discGeo.translate(0, -0.57, 0);
+  const mkHanger = () => { const g = new THREE.Group(); g.add(new THREE.Mesh(stickGeo, M.darkMetal), new THREE.Mesh(discGeo, M.red)); scene.add(g); return g; };
+  const NH = 7, hangers = []; for (let i = 0; i < NH; i++) hangers.push(mkHanger());
+  const myHanger = mkHanger(); myHanger.visible = false;
+  const ropeGeo = new THREE.CylinderGeometry(0.02, 0.02, 1, 6); ropeGeo.translate(0, 0.5, 0);
+  const rope = new THREE.Mesh(ropeGeo, ropeMat); rope.visible = false; scene.add(rope);
+
+  // ── 2. Kælker på bakkerne (øst og vest for tårnet)
+  // lille skilt der vender op mod tårnet, så man kan læse det, når man kommer gående
+  const signTex = canvasTex(512, 192, (c, w, h) => { c.fillStyle = '#a0342c'; c.fillRect(0, 0, w, h); c.strokeStyle = 'rgba(40,20,8,.8)'; c.lineWidth = 12; c.strokeRect(6, 6, w - 12, h - 12);
+    c.font = 'bold 116px Fredoka, Trebuchet MS, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#fff6e0'; c.fillText('KÆLK', w / 2, h / 2 + 6); });
+  signTex.colorSpace = THREE.SRGBColorSpace;
+  const signMat = new THREE.MeshStandardMaterial({ map: signTex, roughness: 0.8 });
+  const kaelkSign = (x, z, ang) => {
+    const y = terrainH(x, z), g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = ang; scene.add(g);
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 1.9, 8), M.wood); post.position.y = 0.95; post.castShadow = true; g.add(post);
+    const board = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.44, 0.06), M.wood); board.position.set(0, 1.62, 0); board.castShadow = true; g.add(board);
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(1.08, 0.38), signMat); face.position.set(0, 1.62, 0.035); g.add(face);
+    const sn = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.06, 0.1), M.snow); sn.position.set(0, 1.86, 0); g.add(sn);
+    new Box(x, y + 0.95, z, 0.1, 0.95, 0.1, 0, 0, 0, { noCam: true });
+  };
+  const HILLS = [];
+  for (const [hx, hz] of [[10.45, 1.15], [-10.45, -1.15]]) {
+    const e = 0.5, gx = (terrainH(hx + e, hz) - terrainH(hx - e, hz)) / (2 * e), gz = (terrainH(hx, hz + e) - terrainH(hx, hz - e)) / (2 * e), gl = Math.hypot(gx, gz) || 1;
+    const dx = -gx / gl, dz = -gz / gl, facing = Math.atan2(dx, dz), y = terrainH(hx, hz);
+    const m = sledMesh.clone(); m.visible = true; m.position.set(hx, y - 0.02, hz);
+    m.quaternion.setFromUnitVectors(V3(0, 1, 0), terrainNormal(hx, hz, V3())).multiply(new THREE.Quaternion().setFromAxisAngle(V3(0, 1, 0), facing)); scene.add(m);
+    groundGlow(hx, hz, 1.5, [1.0, 0.72, 0.3], 0.5);
+    kaelkSign(hx - dx * 1.1 - dz * 1.5, hz - dz * 1.1 + dx * 1.5, facing + Math.PI);
+    HILLS.push({ x: hx, y, z: hz, dx, dz, facing, mesh: m, armed: true, tw: 0 });
+  }
+  kitMesh(kitDone(kit), scene, false);
+
+  // ── styring
+  const L = { s: 0, v: 0, t: 0, armed: true, from: V3(), ring: V3(ring0.x, terrainH(ring0.x, ring0.z), ring0.z) };
+  const LV = 7, _a = V3(), _t = V3();
+  const startLift = () => {
+    KAELK.mode = 'lift'; L.s = 0; L.v = 0; L.t = 0; L.armed = false; L.from.copy(P.pos); setState('lift'); P.vel.set(0, 0, 0); P.grounded = true;
+    Audio.bell(); if (!L.told) { L.told = true; toast('Kælkeliften!', 'Den trækker dig op til toppen af Kælkebakken'); }
+  };
+  const finishLift = () => {
+    KAELK.mode = null; at(LEN, _a); P.pos.set(_a.x, deckY, _a.z); P.vel.set(0, 0, 0); P.grounded = true; P.groundN.set(0, 1, 0); P.facing = Math.PI; P.jumpBuf = 0;
+    setState('idle'); input.lastCamInput = performance.now();
+    Audio.twinkle(0.05); sparkleBurst(_a.x, deckY + 0.5, _a.z, 12, 1, 0.85, 0.4, 3);
+    if (!L.toldTop) { L.toldTop = true; toast('Toppen!', 'Gå frem for at kælke ned igen'); }
+  };
+  KAELK.liftStep = (dt) => {
+    L.t += dt; L.v = Math.min(LV, L.v + 2.2 * dt); const rem = LEN - L.s, v = Math.max(0.8, Math.min(L.v, 0.8 + rem * 1.1)); L.s = Math.min(LEN, L.s + v * dt);
+    at(L.s, _a); tan(L.s, _t); const k = smoothstep(0, 0.45, L.t);
+    P.pos.set(lerp(L.from.x, _a.x, k), lerp(L.from.y, _a.y, k) + 0.02, lerp(L.from.z, _a.z, k));
+    P.vel.set(_t.x * v, _t.y * v, _t.z * v); P.grounded = true; P.groundBox = null; P.onIce = false; P.groundTerrain = true;
+    P.groundN.set(-_t.x * _t.y, 1 - _t.y * _t.y, -_t.z * _t.y).normalize();
+    let f = Math.atan2(_t.x, _t.z); f += angleDiff(f, Math.PI) * smoothstep(3, 0.4, LEN - L.s); // vender sig mod Kælkebakken lige før toppen
+    P.facing += angleDiff(P.facing, f) * (1 - Math.exp(-8 * dt)); P.heading = P.facing; P.speed = Math.hypot(P.vel.x, P.vel.z);
+    P.stateT += dt; P.inputMag = 0; P.jumpBuf = 0; P.poundBuf = 0; P.airT = 0; P.coyote = CFG.coyote; P.turnRate = 0; P.idleT = 0; P.accelF = 0; P.stepOff = 0; P.invuln = Math.max(0, P.invuln - dt);
+    // det sidste stykke drejes kameraet om bag pigen, så pil op kører ned ad Kælkebakken
+    if (LEN - L.s < 10) { input.lastCamInput = performance.now(); CAM.yaw += angleDiff(CAM.yaw, 0) * (1 - Math.exp(-2.5 * dt)); }
+    if (L.s >= LEN - 1e-4) finishLift();
+  };
+  const startHill = (h) => {
+    KAELK.mode = 'hill'; KAELK.cur = h; KAELK.stopT = 0; h.mesh.visible = false; h.armed = false;
+    P.pos.x = h.x; P.pos.z = h.z; P.vel.set(h.dx * 3.2, 0, h.dz * 3.2); P.facing = h.facing; P.turnRate = 0; setState('slide');
+    Audio.whoosh(); snowPuff(h.x, h.y + 0.1, h.z, 8, 1.8, 0.35);
+    if (!KAELK.toldHill) { KAELK.toldHill = true; toast('Kælketur!', 'Styr med pilene - mellemrum hopper med kælken'); }
+  };
+  const endHill = (quiet = false) => {
+    const h = KAELK.cur; KAELK.mode = null; KAELK.cur = null; KAELK.stopT = 0;
+    if (P.state === 'slide' && P.grounded) setState(P.speed > 0.3 ? 'run' : 'idle');
+    if (!h) return;
+    h.mesh.visible = true; h.armed = Math.hypot(P.pos.x - h.x, P.pos.z - h.z) > 2.2;
+    if (quiet) return;
+    sparkleBurst(h.x, h.y + 0.4, h.z, 16, 1, 0.85, 0.4, 3); snowPuff(P.pos.x, P.pos.y + 0.1, P.pos.z, 8, 1.5, 0.35); Audio.twinkle(0.05);
+    if (!KAELK.toldBack) { KAELK.toldBack = true; setTimeout(() => toast('Kælken kører selv op igen', 'Den venter på toppen af bakken'), 900); }
+  };
+  KAELK.reset = () => { if (KAELK.mode === 'hill') endHill(true); else KAELK.mode = null; };
+  HOOKS.physics.push((dt) => {
+    if (GAME.state !== 'play') return;
+    const px = P.pos.x, pz = P.pos.z;
+    if (!L.armed && Math.hypot(px - L.ring.x, pz - L.ring.z) > 2.6) L.armed = true;
+    for (const h of HILLS) if (!h.armed && KAELK.mode !== 'hill' && h.mesh.visible && Math.hypot(px - h.x, pz - h.z) > 2.2) h.armed = true;
+    const free = !KAELK.mode && P.grounded && (P.state === 'idle' || P.state === 'run' || P.state === 'skid' || P.state === 'crouch');
+    if (free) {
+      if (L.armed && Math.hypot(px - L.ring.x, pz - L.ring.z) < 1.15 && Math.abs(P.pos.y - L.ring.y) < 1.5) startLift();
+      else for (const h of HILLS) if (h.armed && h.mesh.visible && Math.hypot(px - h.x, pz - h.z) < 0.95 && Math.abs(P.pos.y - h.y) < 1.2) { startHill(h); break; }
+    }
+    if (KAELK.mode === 'hill') {
+      const st = P.state;
+      if (P.onIce || (P.groundBox && P.groundBox.chute) || st === 'hurt' || st === 'victory' || st === 'eat' || st.startsWith('pound')) endHill();
+      else if (P.grounded && P.speed < 0.6) { KAELK.stopT += dt; if (KAELK.stopT > 0.35) endHill(); }
+      else KAELK.stopT = 0;
+    }
+  });
+  const _c = V3(), _r0 = V3(), _r1 = V3(), _up = V3(0, 1, 0);
+  HOOKS.render.push((dt, t) => {
+    ring.scale.setScalar(1 + 0.07 * Math.sin(t * 3.2)); ring.rotation.y = t * 0.5;
+    const span = S_C1 - S_C0;
+    for (let i = 0; i < NH; i++) { const s = S_C0 + ((t * 2.2 + i * span / NH) % span); cableAt(s, hangers[i].position); tan(s, _t); hangers[i].rotation.y = Math.atan2(_t.x, _t.z); }
+    const riding = KAELK.mode === 'lift' && L.s < S_C1 - 0.3;
+    myHanger.visible = rope.visible = riding;
+    if (riding) {
+      cableAt(L.s + 0.35, myHanger.position); _r0.copy(myHanger.position); _r0.y -= 0.57;
+      const r = viking.root.position, f = P.facing; _r1.set(r.x + Math.sin(f) * 0.5, r.y + 0.28, r.z + Math.cos(f) * 0.5);
+      rope.position.copy(_r0); _c.subVectors(_r1, _r0); const len = _c.length(); rope.scale.set(1, Math.max(0.01, len), 1); rope.quaternion.setFromUnitVectors(_up, _c.multiplyScalar(1 / Math.max(1e-4, len)));
+    }
+    // kælkene på bakkerne glimter lidt, så de er lette at få øje på
+    for (const h of HILLS) if (h.mesh.visible && (h.tw -= dt) <= 0) { h.tw = 1.2; if (camera.position.distanceTo(h.mesh.position) < 45) sparkleBurst(h.x, h.y + 0.45, h.z, 4, 1, 0.85, 0.45, 1.2); }
+  });
+  KAELK.lift = L; KAELK.hills = HILLS; KAELK.liftLen = LEN; // til test
+}
 
 if (AUDIT) { const t0 = performance.now(); window.__AUDIT = runAudit(); console.log('audit ms', Math.round(performance.now() - t0), 'items', window.__AUDIT.length); }
 bulbs.finish();
@@ -6398,7 +6600,7 @@ function frame() {
 }
 // ready
 $('startBtn').disabled = false; $('startBtn').textContent = 'Start eventyret';
-window.__G = { SKATE, XMAS_TREE, SNOWMAN, FRIENDS, XCARD, ADVENT, EATCAM: (typeof EATCAM !== "undefined" ? EATCAM : null), renderer, scene, camera, composer, bloom, HOOKS, P, CAM, GAME, input, keys, enemies, coins, gifts, TOWER, STAR, startGame, stepPlayer, surfaceAt, terrainH, setPause };
+window.__G = { KAELK, SKATE, XMAS_TREE, SNOWMAN, FRIENDS, XCARD, ADVENT, EATCAM: (typeof EATCAM !== "undefined" ? EATCAM : null), renderer, scene, camera, composer, bloom, HOOKS, P, CAM, GAME, input, keys, enemies, coins, gifts, TOWER, STAR, startGame, stepPlayer, surfaceAt, terrainH, setPause };
 if (TEST) startGame();
 frame();
 </script>
