@@ -61,6 +61,7 @@ b{font-weight:700}
 /* screens */
 .screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#fff;transition:opacity .6s}
 .screen.hidden{opacity:0;pointer-events:none}
+.screen.hidden *{pointer-events:none!important} /* skjulte skærme (pause, slut) må ikke ligge usynligt oven på startknappen og tage klikket */
 #start{background:linear-gradient(180deg,rgba(8,12,40,.55),rgba(10,16,48,.05) 38%,rgba(10,16,48,.1) 60%,rgba(6,10,34,.75))}
 .titleStar{width:clamp(50px,min(10vw,13vh),120px);height:auto;margin-bottom:-8px;animation:floaty 3.2s ease-in-out infinite;filter:drop-shadow(0 0 22px rgba(255,200,60,.8))}
 @keyframes floaty{50%{transform:translateY(-8px) rotate(6deg)}}
@@ -126,7 +127,7 @@ kbd{display:inline-block;font-family:inherit;font-weight:700;font-size:13px;min-
 </div>
 <div id="bubble"></div>
 <div id="toast"></div>
-<div id="help"><b class="main">Piletaster: gå - Mellemrum: hop / spis</b><br><span class="extra">Ekstra: WASD · hop igen lige efter landing = dobbelt/tredobbelt · Shift i luften: stamp · Shift på jorden: dukke (+ hop = langt hop) · F: spis · Mus/Q/E: kamera · M: musik · P: pause · Gamepad: A hop/spis, B/X stamp, Y spis</span></div>
+<div id="help"><b class="main">Piletaster: gå - Mellemrum: hop / spis</b></div>
 <div id="prompt"></div><div id="xprompt"></div>
 <div id="touch"><div id="stick"><div id="knob"></div></div><div class="tbtn" id="teat">SPIS</div><div class="tbtn" id="tjump">HOP</div><div class="tbtn" id="tpound">STAMP</div></div>
 <div class="screen" id="start">
@@ -137,15 +138,6 @@ kbd{display:inline-block;font-family:inherit;font-weight:700;font-size:13px;min-
   <div class="keys">
     <span class="main"><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd></span><span class="main"><b>Gå og løb</b></span>
     <span class="main"><kbd>Mellemrum</kbd></span><span class="main"><b>Hop</b> - og <b>spis</b>, når du står ved maden</span>
-    <span class="exh">Ekstra (ikke nødvendigt)</span>
-    <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>Gå og løb</span>
-    <span>Hop igen</span><span>Lige efter landing = dobbelt- og tredobbelthop</span>
-    <span><kbd>Shift</kbd> i luften</span><span>Stamp ned - gør dyrene til venner og åbner gavekasser</span>
-    <span><kbd>Shift</kbd> på jorden</span><span>Dukke dig - hop mens du løber og dukker = langt hop</span>
-    <span><kbd>F</kbd></span><span>Spis (samme som mellemrum ved maden)</span>
-    <span><kbd>K</kbd></span><span>Tag et julekort</span>
-    <span><b>Mus</b> / <kbd>Q</kbd><kbd>E</kbd></span><span>Drej kameraet (det følger også selv med)</span>
-    <span><b>Gamepad</b></span><span><kbd>A</kbd> hop/spis · <kbd>B</kbd>/<kbd>X</kbd> stamp/dukke · <kbd>Y</kbd> spis · højre stik kamera</span>
   </div>
   <div class="foot"><kbd>M</kbd> musik til/fra · <kbd>P</kbd> pause · <kbd>Enter</kbd> start</div>
 </div>
@@ -2447,13 +2439,13 @@ function hitBlock(q, fromAbove = false) {
 function updateBlocks(dt) { for (const q of qblocks) { if (q.t > 0) { q.t += dt; const k = Math.min(q.t / 0.25, 1), s = Math.sin(k * Math.PI); q.m.scale.set(1 + s * 0.12, 1 - s * 0.16, 1 + s * 0.12); q.m.position.y = q.base - s * 0.09; if (q.t > 0.25) { q.t = 0; q.m.position.y = q.base; q.m.scale.set(1, 1, 1); } }
   if (q.gone > 0) { q.gone -= dt; q.m.scale.setScalar(Math.max(0.01, q.gone)); if (q.gone <= 0) { q.m.visible = false; snowPuff(q.pos.x, q.pos.y, q.pos.z, 8, 1.5, 0.35); } } } }
 // stamp ovenpå en blok aktiverer den; stå på en usynlig blok afslører den
-// hop eller stamp ned på en gavekasse åbner den (og giver et lille afsæt, så man kan hoppe på den igen); stamp på det skjulte sted graver kassen frem
+// hop eller stamp ned på en gavekasse åbner den (og giver et lille afsæt, så man kan hoppe på den igen); hop ned på det skjulte sted graver kassen frem
 let _qWasG = true;
 HOOKS.physics.push(() => {
   const landed = P.grounded && !_qWasG; _qWasG = P.grounded;
   if (GAME.state !== 'play' || !landed) return;
   for (const q of qblocks) {
-    if (q.hidden) { if (P.state === 'poundLand' && Math.hypot(P.pos.x - q.pos.x, P.pos.z - q.pos.z) < 1.5) hitBlock(q, true); continue; }
+    if (q.hidden) { if (Math.hypot(P.pos.x - q.pos.x, P.pos.z - q.pos.z) < 1.5) hitBlock(q, true); continue; } // et almindeligt hop ned midt i ringen er nok (stamp virker også)
     if (q.box === P.groundBox && !q.used) { hitBlock(q, true); P.vel.y = 7.5; P.grounded = false; P.coyote = 0; P.canCut = false; P.jumpCount = -1; setState('jump'); anim.squash(0.15); _qWasG = false; }
   }
 });
@@ -4533,7 +4525,7 @@ crateAt(-5.6, 23, 'coin'); crateAt(-4.5, 23, 'heart');
 crateAt(3.8, 11.5, 'multi');
 crateAt(-22, -12, 'heart');
 crateAt(-29.2, 25.2, 'multi');
-// hemmelighed 1: en skjult gavekasse i byen - stamp midt i ringen af mønter for at grave den frem
+// hemmelighed 1: en skjult gavekasse i byen - hop ned midt i ringen af mønter for at grave den frem
 { const hx = 7.2, hz = 60.5; const q = addQBlock(hx, crateY(hx, hz), hz, 'hidden', { reward: 'bauble', secret: 'village' }); q.baubleCol = 4; coinRing(hx, VILLAGE_H + 0.9, hz, 1.7, 8); }
 
 // ═ Checkpoint-lanterner
@@ -4558,7 +4550,7 @@ new Friend(-3.6, 55.6, ANG(3.6, 2.4), [
   () => GAME.gifts >= 5 ? 'Alle fem gaver! Skynd dig op i tårnet til julestjernen!' : `Du har fundet ${GAME.gifts} af 5 gaver. Kompasset oppe i hjørnet viser vej til den nærmeste.`,
   'Hop tre gange i træk for at komme rigtig højt op. Og pas på bæverne - de kaster med snebolde!',
   'Tænd lanternerne undervejs. Hvis du falder, starter du ved den sidste lanterne.',
-  'Psst... der er gemt en gavekasse i sneen her i byen. Find ringen af mønter og stamp midt i den!',
+  'Psst... der er gemt en gavekasse i sneen her i byen. Find ringen af mønter og hop midt ned i den!',
   'Bag tårnet ligger Kælkebakken! Og hop op på en hoppesnemand - hold hop nede, så flyver du helt til skyerne.',
 ]);
 for (const [x, z, r] of [[9, 29, 6], [-8, 21, 6], [14, 11, 5], [-14, 5, 6], [-40, 28, 5], [-35, 13, 5], [20, -4, 6], [-20, -20, 7], [28, 12, 6]]) enemies.push(new Enemy('fox', x, z, { range: r, leash: x === -20 ? 2 : undefined }));
@@ -4698,7 +4690,7 @@ function doBounce(b) {
   P.vel.y = vy; P.grounded = false; P.coyote = 0; P.jumpBuf = 0; P.canCut = false; P.jumpCount = -1; P.chainT = 0; P.airCap = Math.max(CFG.runSpeed, Math.hypot(P.vel.x, P.vel.z));
   setState('triple'); anim.onJump(2); Audio.boing(pound || hold); b.hatTime = 0; SNOW_PLAY.hatFlights++; b.sq.x = 0.62; b.sq.v = 0; b.tipS.v = -30; b.cool = 0.2;
   snowPuff(b.pos.x, b.pos.y + 2.0, b.pos.z, 12, 2.6, 0.4); sparkleBurst(b.pos.x, b.pos.y + 2.1, b.pos.z, 8, 1, 0.5, 0.45, 3); CAM.shake = Math.max(CAM.shake, 0.12);
-  if (_bounceTips++ === 0) toast('Hoppesnemand!', 'Hold hop nede for at komme højere - eller stamp for et superhop');
+  if (_bounceTips++ === 0) toast('Hoppesnemand!', 'Hold mellemrum nede for at komme endnu højere');
 }
 // landsbyen: en hoppesnemand med en søjle af mønter over sig
 { const b = hoppeSnemand(4.6, 65.8, -0.3); for (let i = 0; i < 6; i++) addCoin(4.6, b.pos.y + 3.6 + i * 1.35, 65.8); }
