@@ -23,9 +23,10 @@ if (scriptFile) for (const sf of scriptFile.split(',')) { // flere scripts adski
   if (res !== undefined) console.log('script:', JSON.stringify(res));
 }
 // VIEWS='[{"p":[x,y,z],"l":[x,y,z]}, ...]' tager ét billede pr. kameravinkel (out_0.png, out_1.png, ...) i samme browser
+// ("gy":true betyder, at y-værdierne regnes fra jorden under punktet)
 if (process.env.VIEWS && out !== 'none') {
   const views = JSON.parse(process.env.VIEWS);
-  await page.evaluate(() => { window.__view = null; window.__G.HOOKS.render.push(() => { const v = window.__view; if (v && v.p) { window.__G.camera.position.set(...v.p); window.__G.camera.lookAt(...v.l); } }); });
+  await page.evaluate(() => { window.__view = null; window.__G.HOOKS.render.push(() => { const v = window.__view; if (v && v.p) { const G = window.__G, py = v.gy ? G.terrainH(v.p[0], v.p[2]) : 0, ly = v.gy ? G.terrainH(v.l[0], v.l[2]) : 0; G.camera.position.set(v.p[0], v.p[1] + py, v.p[2]); G.camera.lookAt(v.l[0], v.l[1] + ly, v.l[2]); } }); });
   for (let i = 0; i < views.length; i++) {
     await page.evaluate((v) => { window.__view = v; if (v.player) { const P = window.__G.P; P.pos.set(...v.player); P.prev.copy(P.pos); P.vel.set(0, 0, 0); } }, views[i]);
     await page.waitForTimeout(views[i].wait ?? 4000);

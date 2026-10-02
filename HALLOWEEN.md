@@ -16,7 +16,7 @@ En Halloween-tvilling til "Pigen og Julestjernen" i samme spil, så man kan væl
 
 - [x] 1. Fundament: et tema-valg i koden (?tema=halloween), himmel, lys og tåge i orange og lilla med fuldmåne, ny musik. Titlen er "Pigen og Græskarlygten".
 - [x] 2. Jorden og naturen: efterårsblade på jorden i stedet for sne, ingen sne på træer og tage (eventuelt lidt rimfrost), faldende blade i stedet for snefnug, frost på søen og kælkebakken.
-- [ ] 3. Lys og pynt: orange og lilla lyskæder, græskarlygter langs stien og ved husene, spindelvæv og anden pynt i stedet for julepynt.
+- [x] 3. Lys og pynt: orange og lilla lyskæder, græskarlygter langs stien og ved husene, spindelvæv og anden pynt i stedet for julepynt.
 - [ ] 4. Gaver og mål: de fem gaver bliver til noget halloween-agtigt (for eksempel slikposer eller græskar), julekuglerne bliver til noget andet at samle, julestjernen på tårnet bliver til en stor, smilende græskarlygte, og ikonerne øverst og på minikortet følger med.
 - [ ] 5. Figurer: heksehatte på rævene og bæverne, nissevennen bliver til et lille venligt spøgelse, nisserne i byen bliver udklædte, julemandens kane bliver til en heks på kost, og hoppesnemændene bliver til hoppegræskar.
 - [ ] 6. Aktiviteter: juletræet bliver til græskarlygter, der skal tændes, snemanden bliver til en fugleskræmsel, julekalenderen bliver til "slik eller ballade" ved husene, maden passer til Halloween, og julekortet bliver til et halloweenkort.
@@ -56,6 +56,21 @@ Mangler (kommer i de næste skridt):
 - Snemænd, hoppesnemænd, snebolde og "Byg en snemand" er stadig hvide (skridt 5 og 6).
 - Isklods-søjlerne ved tårnet og kælkebanens hvide kanter er beholdt (de passer til frostnatten). Kan ændres, hvis de virker for vinteragtige.
 
+### Skridt 3 (lys og pynt) - færdigt 2. oktober 2026
+
+Lavet:
+- Lyskæder (`bulbs`, `PAL`): i Halloween er de varme pærer orange, de røde lilla, de grønne limegrønne, de blå violette og de gyldne ravfarvede. Alle lyskæder følger med automatisk.
+- Guirlander (`garlandGeo`) er efterårsblade i stedet for grangrene med sne. Kransene (`wreathMesh`) har små græskar og lilla kugler, og sløjferne er lilla (`M.bow`, `M.wBallA`, `M.wBallB`, `lanternRibbonMat`). I jul er det de samme materialer som før.
+- Ny Halloween-pynt i WORLD DECOR (objektet `HD`, kun i Halloween): `pumpkinLantern()` (smilende græskarlygte med lysende ansigt), `cobweb()` (spindelvæv i et hjørne), `hangingSpider()` (venlig edderkop, der vipper i en tråd) og papirflagermus (`HD.batGeo`).
+- Hyggehusene (`cozyHouse`): tre græskarlygter ved trappen, spindelvæv i begge hjørner under tagskægget, en edderkop ved stuehuset og en papirflagermus i hvert vindue. Inde: et lille græskar i toppen af juletræet i stedet for stjernen, små græskar i stedet for gaver og på kaminhylden i stedet for kravlenisser og julesokker.
+- Tårnet (`buildTower`): græskarlygter ved døren og spindelvæv i hjørnerne ved soklen.
+- Kontrolpost-lygterne (`addLantern`): lille spindelvæv mellem pæl og arm.
+- Græskarlygter langs stien fra byen til tårnet og rundt om pladsen i byen (blokken lige før `bulbs.finish()`). De står ved siden af stien, kun hvor der er frit, og har ingen kollision. Der blev 20 i alt.
+- Bolsjestokkene ved kælkebanen og kælkeliften er orange og lilla (`CANE_A`, `CANE_B`, `CANE_TOP`), og bannerne KÆLKEBAKKEN og KÆLKELIFT har orange og lilla vimpler (`BAN_A`, `BAN_SH`, `BAN_TX`).
+
+Mangler (kommer i de næste skridt):
+- Det store juletræ i byen (stjerne, julehjerter og flag) hører til skridt 6. Gavekasserne, julekuglerne og julestjernen på tårnet hører til skridt 4. Nisserne hører til skridt 5.
+
 Afprøvning (se mappen `test/`):
 - `bash test/prep.sh` laver `test/game.html` med three.js fra npm. Start en server i `test/` med `python3 -m http.server 8123 --bind 127.0.0.1`.
 - `node test/shot.mjs game.html "?test&tema=halloween" billede.png [script.js]` tager et billede. Hvert billede tager 1 til 2 minutter.
@@ -64,4 +79,5 @@ Afprøvning (se mappen `test/`):
 - `test/world.js` måler landskabet (kasser man kan stå på, træer, terræn, mønter, gaver, kasser og julekugler). Det skal være ens i jul og Halloween og ens før og efter en ændring. Kør fx `node test/shot.mjs game.html "?test" none fingerprint.js,world.js` (flere scripts adskilt af komma).
 - Flere billeder i én omgang: `VIEWS='[{"p":[0,9,44],"l":[0,3,68]}]' node test/shot.mjs game.html "?test&tema=halloween" billede.png vent.js` giver `billede_0.png` osv. (p = kameraets plads, l = hvor det kigger hen). Gode steder: byen (0,9,44)->(0,3,68), kælkebakken mod øst (36,15,10)->(8,9,0), søen (-28,9,-8)->(-58,0,-30), tårnet (14,31,17)->(0,26,0).
 - `test/land.js` lander pigen og tæller bladene, der hvirvler op.
-- Efter skridt 2 var juleudgaven helt ens med før, og landskabet i Halloween var ens med julens.
+- Efter skridt 2 og 3 var juleudgaven helt ens med før, og landskabet i Halloween var ens med julens.
+- Gode nærbilleder (med `"gy":true`, så højden regnes fra jorden): hus B's dør (10.6,2.2,80.3)->(13.8,1.4,74.4), tårnets dør (2.2,2.4,8.6)->(0,2.2,2.6), starten af kælkebakken (4,2.8,-14)->(0,2.4,-6.2).

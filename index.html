@@ -1370,7 +1370,8 @@ const bulbs = (() => {
   const MAX = 4200; const mesh = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.078, 0), M.bulb, MAX); mesh.count = 0; // tiny HDR dots: 20 tris each is plenty
   mesh.frustumCulled = false; scene.add(mesh);
   const base = []; const tmp = new THREE.Color(); const m4 = new THREE.Matrix4();
-  const PAL = { warm: [3.0, 1.75, 0.7], red: [3.4, 0.35, 0.3], green: [0.45, 2.7, 0.7], blue: [0.6, 1.2, 3.6], gold: [3.3, 2.2, 0.55], white: [2.4, 2.5, 3.0] };
+  // Halloween: varm = orange, rød = lilla, grøn = limegrøn, blå = violet, guld = rav, hvid = lys lilla
+  const PAL = HALLO ? { warm: [3.3, 1.25, 0.25], red: [1.9, 0.45, 3.1], green: [1.1, 2.8, 0.35], blue: [1.3, 0.55, 3.4], gold: [3.3, 1.75, 0.3], white: [2.4, 2.0, 3.0] } : { warm: [3.0, 1.75, 0.7], red: [3.4, 0.35, 0.3], green: [0.45, 2.7, 0.7], blue: [0.6, 1.2, 3.6], gold: [3.3, 2.2, 0.55], white: [2.4, 2.5, 3.0] };
   return {
     add(pos, kind, size = 1) { if (mesh.count >= MAX) return; const i = mesh.count++; m4.makeScale(size, size, size).setPosition(pos); mesh.setMatrixAt(i, m4); const c = PAL[kind] || PAL.warm; base.push({ c, ph: rand() * 100, sp: rr(1.2, 3.5), tw: kind === 'warm' ? 0.22 : 0.5 }); mesh.setColorAt(i, tmp.setRGB(c[0], c[1], c[2])); },
     finish() { mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true; finishDecor(); },
@@ -1735,23 +1736,89 @@ function garlandGeo(points, radius = 0.13, seg = 7) {
     const j = hash2(i * 7 + 3, 17) - 0.5; const bump = 1 + j * 0.5;
     const cx = p.getX(i) - n.getX(i) * radius, cy = p.getY(i) - n.getY(i) * radius, cz = p.getZ(i) - n.getZ(i) * radius;
     p.setXYZ(i, cx + n.getX(i) * radius * bump, cy + n.getY(i) * radius * bump, cz + n.getZ(i) * radius * bump);
+    if (HALLO) { const a = [[0.5, 0.17, 0.03], [0.38, 0.06, 0.03], [0.5, 0.33, 0.05], [0.22, 0.11, 0.04]][Math.min(3, Math.floor((j + 0.5) * 4))]; cols[i * 3] = a[0]; cols[i * 3 + 1] = a[1]; cols[i * 3 + 2] = a[2]; continue; } // Halloween: guirlande af efterårsblade
     const snowy = smoothstep(0.35, 0.8, n.getY(i)) * (0.6 + j);
     const g0 = [0.04 + j * 0.02, 0.2 + j * 0.06, 0.1];
     cols[i * 3] = lerp(g0[0], 0.92, snowy); cols[i * 3 + 1] = lerp(g0[1], 0.95, snowy); cols[i * 3 + 2] = lerp(g0[2], 1.0, snowy);
   }
   geo.setAttribute('color', new THREE.BufferAttribute(cols, 3)); geo.computeVertexNormals(); return geo;
 }
+// Halloween: lilla sløjfer, og kransene får små græskar og lilla kugler i stedet for røde og gyldne julekugler (i jul er det de samme materialer som før)
+M.bow = HALLO ? new THREE.MeshStandardMaterial({ color: col('#6a2a9a'), roughness: 0.5 }) : M.red;
+M.wBallA = HALLO ? new THREE.MeshStandardMaterial({ color: col('#f07a1a'), roughness: 0.45, emissive: col('#3a1200') }) : M.red;
+M.wBallB = HALLO ? new THREE.MeshStandardMaterial({ color: col('#5a2a8a'), roughness: 0.3, metalness: 0.3 }) : M.gold;
 function bowMesh(parent, x, y, z, rotY, s = 1) {
   const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = rotY; g.scale.setScalar(s); parent.add(g);
-  for (const sx of [-1, 1]) { const l = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.04, 6, 10), M.red); l.position.set(sx * 0.1, 0, 0); l.scale.set(1, 0.7, 0.6); g.add(l); const t = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.22, 0.03), M.red); t.position.set(sx * 0.05, -0.13, 0.01); t.rotation.z = sx * 0.35; g.add(t); }
-  const k = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), M.red); g.add(k); return g;
+  for (const sx of [-1, 1]) { const l = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.04, 6, 10), M.bow); l.position.set(sx * 0.1, 0, 0); l.scale.set(1, 0.7, 0.6); g.add(l); const t = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.22, 0.03), M.bow); t.position.set(sx * 0.05, -0.13, 0.01); t.rotation.z = sx * 0.35; g.add(t); }
+  const k = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), M.bow); g.add(k); return g;
 }
 function wreathMesh(parent, x, y, z, rotY, R = 0.3) {
   const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = rotY; parent.add(g);
   const pts = []; for (let i = 0; i <= 24; i++) { const a = i / 24 * Math.PI * 2; pts.push(V3(Math.cos(a) * R, Math.sin(a) * R, 0)); }
   const w = new THREE.Mesh(garlandGeo(pts, R * 0.3, 6), M.pineGarland); g.add(w);
-  for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2 + 0.3; const b = new THREE.Mesh(new THREE.SphereGeometry(R * 0.09, 6, 5), i % 2 ? M.red : M.gold); b.position.set(Math.cos(a) * R, Math.sin(a) * R, R * 0.22); g.add(b); }
+  for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2 + 0.3; const b = new THREE.Mesh(new THREE.SphereGeometry(R * 0.09, 6, 5), i % 2 ? M.wBallA : M.wBallB); b.position.set(Math.cos(a) * R, Math.sin(a) * R, R * 0.22); g.add(b); }
   bowMesh(g, 0, -R, R * 0.2, 0, R * 2.4); return g;
+}
+
+// ---------- Halloween-pynt: græskarlygter, spindelvæv, edderkopper og papirflagermus (bygges kun når HALLO, med hrand()) ----------
+const HD = HALLO ? (() => {
+  // græskarkrop med ribber, fordybning i top og bund og en stilk; ansigtet ligger som en tynd, lysende skal foran (bloom får det til at gløde)
+  const shape = (x, y, z, R) => { const a = Math.atan2(z, x), rib = 0.5 + 0.5 * Math.cos(a * 8), rxz = Math.hypot(x, z); const k = R * (1 - 0.08 * Math.pow(1 - rib, 1.5)); return [x * k, y * R * (0.78 - 0.22 * (1 - smoothstep(0.0, 0.4, rxz))), z * k, rib]; };
+  const body = new THREE.SphereGeometry(1, 26, 16); { const p = body.attributes.position, c = new Float32Array(p.count * 3);
+    for (let i = 0; i < p.count; i++) { const [x, y, z, rib] = shape(p.getX(i), p.getY(i), p.getZ(i), 1); p.setXYZ(i, x, y, z); const d = 0.75 + 0.25 * smoothstep(-0.8, 0.4, y); c[i * 3] = lerp(0.42, 0.85, rib) * d; c[i * 3 + 1] = lerp(0.1, 0.27, rib) * d; c[i * 3 + 2] = lerp(0.01, 0.03, rib) * d; }
+    body.setAttribute('color', new THREE.BufferAttribute(c, 3)); body.deleteAttribute('uv'); body.computeVertexNormals(); }
+  const stem = new THREE.CylinderGeometry(0.07, 0.12, 0.34, 7); stem.rotateZ(0.25); stem.translate(0.03, 0.86, 0); colorGeo(stem, new THREE.Color().setRGB(0.16, 0.12, 0.04)); stem.deleteAttribute('uv');
+  const pumpGeo = mergeGeometries([body.toNonIndexed(), stem.toNonIndexed()]);
+  const face = new THREE.SphereGeometry(1, 22, 14, Math.PI / 2 - 0.95, 1.9, 0.6, 1.4); { const p = face.attributes.position; for (let i = 0; i < p.count; i++) { const [x, y, z] = shape(p.getX(i), p.getY(i), p.getZ(i), 1.014); p.setXYZ(i, x, y, z); } face.computeVertexNormals(); }
+  const faceTex = canvasTex(256, 256, (g) => {
+    g.clearRect(0, 0, 256, 256); g.fillStyle = '#fff'; g.strokeStyle = '#fff'; g.lineJoin = 'round'; g.lineWidth = 9;
+    for (const cx of [80, 176]) { g.beginPath(); g.moveTo(cx, 66); g.lineTo(cx - 25, 112); g.lineTo(cx + 25, 112); g.closePath(); g.fill(); g.stroke(); } // øjne
+    g.beginPath(); g.moveTo(128, 120); g.lineTo(116, 144); g.lineTo(140, 144); g.closePath(); g.fill(); g.stroke(); // næse
+    g.beginPath(); g.moveTo(46, 158); g.quadraticCurveTo(128, 248, 210, 158); g.quadraticCurveTo(128, 196, 46, 158); g.fill(); // smil
+    g.globalCompositeOperation = 'destination-out'; g.fillRect(96, 160, 18, 20); g.fillRect(142, 160, 18, 20); // to tænder
+  });
+  const faceMat = new THREE.MeshBasicMaterial({ map: faceTex, color: new THREE.Color().setRGB(2.9, 1.5, 0.42), alphaTest: 0.5, side: THREE.DoubleSide });
+  const pumpMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, emissive: new THREE.Color().setRGB(0.09, 0.025, 0.0) });
+  // spindelvæv: et hjørne med tråde ud fra hjørnet og buer imellem (hjørnet ligger i (0, 0), vævet går mod +x og -y)
+  const webTex = canvasTex(256, 256, (g, w, h) => {
+    g.clearRect(0, 0, w, h); g.strokeStyle = 'rgba(240,240,255,.95)'; g.lineCap = 'round';
+    const N = 7, A = []; for (let i = 0; i < N; i++) A.push(i / (N - 1) * Math.PI / 2 + (i > 0 && i < N - 1 ? hrr(-0.06, 0.06) : 0));
+    g.lineWidth = 2.4; for (const a of A) { g.beginPath(); g.moveTo(1, 1); g.lineTo(Math.cos(a) * 252, Math.sin(a) * 252); g.stroke(); }
+    g.lineWidth = 1.7; for (const r of [26, 52, 80, 110, 142, 176, 212, 246]) for (let i = 0; i < N - 1; i++) { const a0 = A[i], a1 = A[i + 1], am = (a0 + a1) / 2; g.beginPath(); g.moveTo(Math.cos(a0) * r, Math.sin(a0) * r); g.quadraticCurveTo(Math.cos(am) * r * 0.86, Math.sin(am) * r * 0.86, Math.cos(a1) * r, Math.sin(a1) * r); g.stroke(); }
+  });
+  const webGeo = new THREE.PlaneGeometry(1, 1).translate(0.5, -0.5, 0);
+  const webMat = new THREE.MeshBasicMaterial({ map: webTex, color: new THREE.Color().setRGB(0.62, 0.62, 0.78), transparent: true, depthWrite: false, side: THREE.DoubleSide });
+  // venlig lille edderkop: rund krop, otte ben og store øjne
+  const spGeo = (() => { const parts = []; const C = (geo, c) => { colorGeo(geo, new THREE.Color().setRGB(...c)); geo.deleteAttribute('uv'); parts.push(geo.index ? geo.toNonIndexed() : geo); };
+    const dark = [0.05, 0.03, 0.07]; const b = new THREE.SphereGeometry(0.085, 14, 10); b.scale(1, 0.9, 1.05); C(b, dark);
+    for (const sx of [-1, 1]) { const e = new THREE.SphereGeometry(0.03, 10, 8); e.translate(sx * 0.032, 0.025, 0.07); C(e, [0.95, 0.95, 0.95]); const pu = new THREE.SphereGeometry(0.015, 8, 6); pu.translate(sx * 0.034, 0.025, 0.097); C(pu, [0.02, 0.02, 0.02]);
+      for (let k = 0; k < 4; k++) { const a = -0.75 + k * 0.5; const l1 = new THREE.BoxGeometry(0.11, 0.016, 0.016); l1.translate(0.055, 0, 0); l1.rotateZ(0.6); l1.rotateY(a); l1.translate(sx * 0.06, 0, 0); if (sx < 0) l1.rotateY(Math.PI); C(l1, dark);
+        const l2 = new THREE.BoxGeometry(0.13, 0.014, 0.014); l2.translate(0.065, 0, 0); l2.rotateZ(-0.9); l2.translate(0.063, 0.052, 0); l2.rotateY(a); l2.translate(sx * 0.06, 0, 0); if (sx < 0) l2.rotateY(Math.PI); C(l2, dark); } }
+    return mergeGeometries(parts); })();
+  const spMat = addRim(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5 }), 0.5);
+  const threadMat = new THREE.MeshBasicMaterial({ color: new THREE.Color().setRGB(0.55, 0.55, 0.7) });
+  const threadGeo = new THREE.CylinderGeometry(0.005, 0.005, 1, 4).translate(0, -0.5, 0);
+  // papirflagermus til vinduerne (sort silhuet mod det varme lys)
+  const batGeo = (() => { const R = [[0, 0.1], [0.05, 0.17], [0.075, 0.08], [0.18, 0.13], [0.33, 0.17], [0.5, 0.1], [0.43, 0.0], [0.37, -0.05], [0.31, 0.02], [0.23, -0.06], [0.16, 0.0], [0.08, -0.11], [0, -0.16]];
+    const sh = new THREE.Shape(); sh.moveTo(R[0][0], R[0][1]); for (let i = 1; i < R.length; i++) sh.lineTo(R[i][0], R[i][1]); for (let i = R.length - 2; i >= 1; i--) sh.lineTo(-R[i][0], R[i][1]); sh.closePath(); return new THREE.ShapeGeometry(sh); })();
+  const batMat = new THREE.MeshBasicMaterial({ color: new THREE.Color().setRGB(0.03, 0.015, 0.05), side: THREE.DoubleSide });
+  return { pumpGeo, face, faceMat, pumpMat, webGeo, webMat, spGeo, spMat, threadMat, threadGeo, batGeo, batMat, spiders: [] };
+})() : null;
+// græskarlygte i parent (gruppe eller STATIC) i lokale koordinater: s = radius i meter, ry = hvilken vej ansigtet vender
+function pumpkinLantern(parent, x, y, z, s = 0.42, ry = 0) {
+  const g = new THREE.Group(); g.position.set(x, y + s * 0.74, z); g.rotation.y = ry; g.scale.setScalar(s); parent.add(g);
+  const b = new THREE.Mesh(HD.pumpGeo, HD.pumpMat); b.castShadow = true; b.receiveShadow = true; g.add(b);
+  g.add(new THREE.Mesh(HD.face, HD.faceMat)); return g;
+}
+// spindelvæv i parent: hjørnet ligger i (x, y, z), vævet går mod +x og -y; rz drejer det, flip spejler det
+function cobweb(parent, x, y, z, ry = 0, size = 0.9, rz = 0, flip = false) {
+  const m = new THREE.Mesh(HD.webGeo, HD.webMat); m.position.set(x, y, z); m.rotation.set(0, ry, rz); m.scale.set(flip ? -size : size, size, 1); m.renderOrder = 3; parent.add(m); return m;
+}
+// edderkop, der hænger i en tråd fra top (verdenskoordinater) og vipper stille op og ned
+function hangingSpider(top, len = 0.8) {
+  const sp = new THREE.Mesh(HD.spGeo, HD.spMat); const th = new THREE.Mesh(HD.threadGeo, HD.threadMat); th.position.copy(top); scene.add(sp, th);
+  HD.spiders.push({ sp, th, top: top.clone(), len, ph: hrand() * 6.28 });
+  if (HD.spiders.length === 1) HOOKS.update.push((dt, t) => { for (const o of HD.spiders) { const L = o.len * (0.78 + 0.22 * Math.sin(t * 0.9 + o.ph)); o.sp.position.set(o.top.x, o.top.y - L - 0.07, o.top.z); o.sp.rotation.y = Math.sin(t * 0.5 + o.ph) * 0.8; o.th.scale.y = L; } });
 }
 
 // ---------- lamp posts ----------
@@ -2038,6 +2105,10 @@ function buildTower() {
   { const plq = canvasTex(512, 64, (c, w, h) => { c.fillStyle = '#e3d9c6'; c.fillRect(0, 0, w, h); c.strokeStyle = '#a89c86'; c.lineWidth = 4; c.strokeRect(4, 4, w - 8, h - 8); c.fillStyle = '#6b5a40'; c.font = 'bold 34px Fredoka, Trebuchet MS, serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('FREDERIK VII  ·  1849', w / 2, h / 2 + 2); });
     add(new THREE.PlaneGeometry(2.6, 0.32), new THREE.MeshStandardMaterial({ map: plq, roughness: 0.8 }), 0, 3.64, 2.535); }
   wreathMesh(g, 0, 2.5, 2.62, 0, 0.34);
+  if (HALLO) { // Halloween: græskarlygter ved døren og spindelvæv i hjørnerne ved soklen
+    for (const [px, pz, ps, pr] of [[-1.25, 2.92, 0.34, 0.15], [1.25, 2.88, 0.4, -0.2], [1.85, 2.78, 0.22, -0.5]]) pumpkinLantern(g, px, 1.33, pz, ps, pr);
+    cobweb(g, -2.0, 1.34, 2.53, 0, 1.1, Math.PI / 2); cobweb(g, 2.0, 1.34, 2.53, 0, 1.1, Math.PI);
+  }
   // ledges spiral (positions are gameplay-critical - unchanged); dressed as sandstone balconies with fairy lights
   const ledges = [];
   const corbelGeo = (() => { const sh = new THREE.Shape(); sh.moveTo(-0.05, 0); sh.lineTo(1.72, 0); sh.lineTo(1.72, -0.2); sh.quadraticCurveTo(0.55, -0.32, 0.12, -1.35); sh.lineTo(-0.05, -1.45); sh.lineTo(-0.05, 0); const e = new THREE.ExtrudeGeometry(sh, { depth: 0.26, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 2, curveSegments: 8 }); e.translate(0, 0, -0.13); return e; })();
@@ -2300,6 +2371,7 @@ function cozyHouse(x, z, rotY = 0, opts = {}) {
         continue;
       }
       { const [px, py, pz] = P(uc, vc, 0); add(new THREE.PlaneGeometry(ul, vl), HM.glass, px, py, pz, { ry: rot }); }
+      if (HALLO) { const [px, py, pz] = P(uc - ul * 0.16, vc + vl * 0.14, 0.03); add(HD.batGeo, HD.batMat, px, py, pz, { ry: rot, rz: hrr(-0.3, 0.3) }).scale.setScalar(0.6); } // Halloween: papirflagermus i vinduet
       fr(uc, vc, 0.05, vl, 0.0, 0.05); fr(uc, vc, ul, 0.05, 0.0, 0.05);
       { const [px, py, pz] = P(uc, v0 - 0.06, 0.2); add(alongX ? new THREE.BoxGeometry(ul + 0.25, 0.08, 0.3) : new THREE.BoxGeometry(0.3, 0.08, ul + 0.25), M.white, px, py, pz); const [sx, sy, sz] = P(uc, v0 + 0.0, 0.22); add(lumpy(alongX ? new RoundedBoxGeometry(ul + 0.2, 0.12, 0.28, 2, 0.05) : new RoundedBoxGeometry(0.28, 0.12, ul + 0.2, 2, 0.05), 0.03), M.frost, sx, sy, sz); }
       { const [px, py, pz] = P(uc, v0 - 0.04, -0.2); add(alongX ? new THREE.BoxGeometry(ul + 0.15, 0.06, 0.26) : new THREE.BoxGeometry(0.26, 0.06, ul + 0.15), HM.beam, px, py, pz); // inner sill + candle
@@ -2384,8 +2456,9 @@ function cozyHouse(x, z, rotY = 0, opts = {}) {
     add(new THREE.ConeGeometry(0.07, 0.16, 10), M.red, 0, 0.08, 0, { p: n }); add(new THREE.SphereGeometry(0.045, 10, 8), HM.skin, 0, 0.19, 0.01, { p: n }); add(new THREE.ConeGeometry(0.04, 0.07, 8).rotateX(Math.PI), M.white, 0, 0.15, 0.035, { p: n });
     add(new THREE.ConeGeometry(0.05, 0.16, 10), M.red, 0, 0.29, -0.01, { p: n, rx: -0.3 }); add(new THREE.SphereGeometry(0.018, 6, 5), M.white, 0, 0.36, -0.05, { p: n });
     for (const sx of [-1, 1]) { add(new THREE.CylinderGeometry(0.014, 0.014, 0.16, 5), M.stone, sx * 0.03, -0.05, 0.05, { p: n, rx: 0.25 }); add(new THREE.SphereGeometry(0.022, 6, 5), HM.beam, sx * 0.03, -0.13, 0.07, { p: n }); } };
-  nisse(FX + 0.72, 1.66, FZ - 0.35, Math.PI / 2); nisse(FX + 0.72, 1.66, FZ + 0.3, Math.PI / 2 + 0.2);
-  for (const [dz, c] of [[-0.5, M.red], [0.5, M.white]]) { add(new THREE.CapsuleGeometry(0.07, 0.22, 3, 8), c, FX + 0.85, 1.35, FZ + dz); add(new THREE.CapsuleGeometry(0.05, 0.1, 3, 8).rotateZ(Math.PI / 2), c, FX + 0.9, 1.21, FZ + dz); }
+  if (HALLO) { pumpkinLantern(g, FX + 0.62, 1.64, FZ - 0.35, 0.11, Math.PI / 2); pumpkinLantern(g, FX + 0.62, 1.64, FZ + 0.3, 0.09, Math.PI / 2 + 0.3); } // Halloween: små græskar på kaminhylden i stedet for kravlenisser og julesokker
+  else { nisse(FX + 0.72, 1.66, FZ - 0.35, Math.PI / 2); nisse(FX + 0.72, 1.66, FZ + 0.3, Math.PI / 2 + 0.2); }
+  if (!HALLO) for (const [dz, c] of [[-0.5, M.red], [0.5, M.white]]) { add(new THREE.CapsuleGeometry(0.07, 0.22, 3, 8), c, FX + 0.85, 1.35, FZ + dz); add(new THREE.CapsuleGeometry(0.05, 0.1, 3, 8).rotateZ(Math.PI / 2), c, FX + 0.9, 1.21, FZ + dz); }
   wreathMesh(g, FX + 0.52, 2.35, FZ, Math.PI / 2, 0.3);
   // chimney outside
   add(bx(0.9, H + RISE + 1.4 + (fy - lo), 1.1, -W / 2 - 0.55, (H + RISE + 1.4 - (fy - lo)) / 2, FZ, 0.6), cottageMats.brick, 0, 0, 0, { cast: true });
@@ -2435,7 +2508,8 @@ function cozyHouse(x, z, rotY = 0, opts = {}) {
     { const h = new THREE.Sprite(haloMat); h.scale.setScalar(0.7); h.position.copy(L2W(TX - 0.45, TH + 0.3, TZ - 0.12)); scene.add(h); }
     // little Christmas tree in the back-left corner and a wreath on the stove wall
     { const tx = -W / 2 + 0.7, tz = -D / 2 + 0.65, S = 0.32; add(bigFirGeo, firMat, tx, 0, tz, { cast: true }).scale.setScalar(S);
-      add(starGeometry(0.13, 0.055, 0.04), HM.star || (HM.star = new THREE.MeshStandardMaterial({ color: col('#ffd24a'), emissive: col('#ffb300'), emissiveIntensity: 1.5 })), tx, (TREE_TYPES.fir.y1 + TREE_TYPES.fir.h) * S + 0.12, tz);
+      if (HALLO) pumpkinLantern(g, tx, (TREE_TYPES.fir.y1 + TREE_TYPES.fir.h) * S + 0.02, tz, 0.09, 0.4); // Halloween: et lille græskar i toppen
+      else add(starGeometry(0.13, 0.055, 0.04), HM.star || (HM.star = new THREE.MeshStandardMaterial({ color: col('#ffd24a'), emissive: col('#ffb300'), emissiveIntensity: 1.5 })), tx, (TREE_TYPES.fir.y1 + TREE_TYPES.fir.h) * S + 0.12, tz);
       const wp = L2W(tx, 0, tz); treeLights(TREE_TYPES.fir, wp.x, wp.y, wp.z, S, 'spiral', ['warm', 'red', 'gold'], 0.5); box(tx, 0.9, tz, 0.3, 0.9, 0.3); }
     wreathMesh(g, FX + 0.14, 2.2, FZ + 0.55, Math.PI / 2, 0.24);
   } else {
@@ -2462,9 +2536,12 @@ function cozyHouse(x, z, rotY = 0, opts = {}) {
   }
   // ----- little Christmas tree in the back left corner
   { const tx = -W / 2 + 0.75, tz = -D / 2 + 0.75, S = 0.36; add(bigFirGeo, firMat, tx, 0, tz, { cast: true }).scale.setScalar(S);
-    const st = add(starGeometry(0.14, 0.06, 0.04), new THREE.MeshStandardMaterial({ color: col('#ffd24a'), emissive: col('#ffb300'), emissiveIntensity: 1.5 }), tx, (TREE_TYPES.fir.y1 + TREE_TYPES.fir.h) * S + 0.12, tz); void st;
+    if (HALLO) pumpkinLantern(g, tx, (TREE_TYPES.fir.y1 + TREE_TYPES.fir.h) * S + 0.02, tz, 0.1, 0.4); // Halloween: et lille græskar i toppen
+    else { const st = add(starGeometry(0.14, 0.06, 0.04), new THREE.MeshStandardMaterial({ color: col('#ffd24a'), emissive: col('#ffb300'), emissiveIntensity: 1.5 }), tx, (TREE_TYPES.fir.y1 + TREE_TYPES.fir.h) * S + 0.12, tz); void st; }
     const wp = L2W(tx, 0, tz); treeLights(TREE_TYPES.fir, wp.x, wp.y, wp.z, S, 'spiral', ['warm', 'red', 'gold'], 0.55);
-    const pc = [['#c8102e', '#ffd24a'], ['#1f6a3a', '#f2f2f2'], ['#2556a8', '#ffd24a']]; pc.forEach(([a, b], i) => { const p = makeGiftMesh(a, b, 0.3); p.position.set(tx + 0.5 + i * 0.1, 0.13, tz + 0.2 + i * 0.3); p.rotation.y = i; g.add(p); });
+    const pc = [['#c8102e', '#ffd24a'], ['#1f6a3a', '#f2f2f2'], ['#2556a8', '#ffd24a']];
+    if (HALLO) pc.forEach((_, i) => pumpkinLantern(g, tx + 0.5 + i * 0.1, 0, tz + 0.2 + i * 0.3, 0.13 + 0.03 * (i % 2), 0.6 + i)); // Halloween: små græskar i stedet for gaver
+    else pc.forEach(([a, b], i) => { const p = makeGiftMesh(a, b, 0.3); p.position.set(tx + 0.5 + i * 0.1, 0.13, tz + 0.2 + i * 0.3); p.rotation.y = i; g.add(p); });
     box(tx, 1.0, tz, 0.35, 1.0, 0.35);
   }
   // ----- round table (by the right-hand window)
@@ -2530,6 +2607,11 @@ function cozyHouse(x, z, rotY = 0, opts = {}) {
   { const d2 = L2W(DOORX, 0, D / 2 + 2.3); pools.add(d2.x, d2.z, 1.05, 2.3, [0.62, 0.36, 0.14], null, rotY); const d = L2W(DOORX, 0, D / 2 + 1.4); groundGlow(d.x, d.z, 3.2, [1, 0.6, 0.25], 0.5); const c0 = L2W(0, 0, 0); contactShadow(c0.x, c0.z, W * 0.62, null, D * 0.7, rotY); }
   { const lp = L2W(DOORX + 0.95, 2.35, D / 2 + 0.2); const lamp = add(new THREE.CylinderGeometry(0.1, 0.08, 0.24, 6), lanternGlass, DOORX + 0.95, 2.35, D / 2 + 0.2); void lamp; add(new THREE.ConeGeometry(0.15, 0.12, 6), M.darkMetal, DOORX + 0.95, 2.53, D / 2 + 0.2); const lh = new THREE.Sprite(haloMat); lh.scale.setScalar(0.9); lh.position.copy(lp); scene.add(lh); }
   wreathMesh(g, DOORX, DOORH + 0.35, D / 2 + 0.16, 0, 0.26);
+  if (HALLO) { // Halloween: græskarlygter ved trappen, spindelvæv under tagskægget og en lille edderkop ved stuehuset
+    for (const [px, pz, ps, pr] of [[DOORX - 1.08, D / 2 + 0.6, 0.36, -0.15], [DOORX + 1.08, D / 2 + 0.55, 0.3, 0.2], [DOORX + 1.42, D / 2 + 0.95, 0.2, 0.5]]) { const w = L2W(px, 0, pz); pumpkinLantern(g, px, terrainH(w.x, w.z) - fy - 0.06, pz, ps, pr); groundGlow(w.x, w.z, 0.9 + ps * 2.2, [1, 0.5, 0.15], 0.45); }
+    cobweb(g, -W / 2 + 0.08, H - 0.02, D / 2 + 0.15, 0, 1.0); cobweb(g, W / 2 - 0.08, H - 0.02, D / 2 + 0.15, 0, 0.8, 0, true);
+    if (!KIT) hangingSpider(L2W(W / 2 - 0.42, H - 0.28, D / 2 + 0.2), 0.9);
+  }
   // drifts outside (not in front of the door)
   // terrain-hugging drift all round the foundation; open at the steps so the doorway stays inviting
   footDrift(x, z, W / 2 + 0.17, D / 2 + 0.17, rotY, 0.5, 1.2, x + 1, 1, (lx, lz) => lz > 0 ? smoothstep(1.0, 1.7, Math.abs(lx - DOORX)) : 1);
@@ -2747,7 +2829,7 @@ function updateBaubles(dt, t, pc) {
 const lanternGlassOff = new THREE.MeshStandardMaterial({ color: col('#3a4666'), roughness: 0.2, metalness: 0.1, emissive: col('#10182e'), transparent: true, opacity: 0.85 });
 const lanternGlassOn = new THREE.MeshBasicMaterial({ color: new THREE.Color().setRGB(3.0, 1.8, 0.7) });
 const lanternHaloMat = new THREE.SpriteMaterial({ map: glowTex, color: new THREE.Color().setRGB(1.5, 0.9, 0.4), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
-const lanternRibbonMat = new THREE.MeshStandardMaterial({ color: col('#c8102e'), roughness: 0.6 });
+const lanternRibbonMat = new THREE.MeshStandardMaterial({ color: col(HALLO ? '#6a2a9a' : '#c8102e'), roughness: 0.6 });
 const LG = { post: new THREE.CylinderGeometry(0.08, 0.1, 2.3, 8), arm: new THREE.BoxGeometry(0.75, 0.08, 0.08), frame: new THREE.CylinderGeometry(0.2, 0.2, 0.06, 6), roof: new THREE.ConeGeometry(0.26, 0.24, 6), glass: new THREE.CylinderGeometry(0.16, 0.13, 0.4, 6), snow: new THREE.ConeGeometry(0.24, 0.12, 6), bow: new THREE.TorusGeometry(0.07, 0.03, 6, 10), foot: new THREE.CylinderGeometry(0.2, 0.26, 0.24, 8) };
 const lanterns = [];
 function addLantern(x, z, rotY = 0, name = '', active = false) {
@@ -2759,6 +2841,7 @@ function addLantern(x, z, rotY = 0, name = '', active = false) {
   const roof = new THREE.Mesh(LG.roof, M.darkMetal); roof.position.y = 0.3; lan.add(roof); const sn = new THREE.Mesh(LG.snow, M.frost); sn.position.y = 0.38; lan.add(sn);
   const bow = add(LG.bow, lanternRibbonMat, 0, 1.9, 0.1, false); bow.scale.set(1.4, 1, 1);
   const cap = add(LG.snow, M.frost, 0, 2.34, 0, false); cap.scale.set(0.5, 0.8, 0.5);
+  if (HALLO) cobweb(g, 0.07, 2.15, 0, 0, 0.5); // Halloween: lille spindelvæv mellem pæl og arm
   const halo = new THREE.Sprite(lanternHaloMat); halo.scale.setScalar(active ? 2.6 : 0.001); lan.add(halo);
   new Box(x, y + 1.15, z, 0.12, 1.15, 0.12, 0, 0, 0, { noCam: true });
   const L = { g, lan, glass, halo, pos: V3(x, y, z), active, name, t: rand() * 5, k: active ? 1 : 0, spawn: V3(x + Math.cos(rotY) * 1.3, y, z - Math.sin(rotY) * 1.3) };
@@ -4826,6 +4909,8 @@ enemies.push(new Enemy('beaver', 6, -5, { patrol: [[6, -5], [-6, -6]] }));
 // ═ Kælkebakken: en isbane ned ad Himmelbjergets nordside med mønt-strøm og et hop til sidst
 // Fysikken genbruger spillerens egen glide-tilstand: mens man står på banen, sættes CFG.slideNY højere, så selv en blid hældning glider.
 const SLED_VY = 14, SLED_HS = 13;
+// bannerfarver: Halloween har orange og lilla vimpler og orange skrift med lilla skygge (i jul rød som før)
+const BAN_A = HALLO ? '#e8701a' : '#c8102e', BAN_SH = HALLO ? '#3a1d5c' : '#7a0d18', BAN_TX = HALLO ? '#e8701a' : '#d61f2c';
 const SLED = { on: false, air: false, show: 0, pts: [], L: 0, dir: V3(), lip: V3(), SLIDE0: CFG.slideNY, first: true };
 const chuteIceMat = new THREE.MeshPhysicalMaterial({ color: col('#cfe6ff'), roughness: 0.18, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.08, envMapIntensity: 1.4, emissive: col('#16304e'), emissiveIntensity: 0.25 });
 const chuteSnowMat = snowify(new THREE.MeshStandardMaterial({ color: col('#f2f6ff'), roughness: 0.9, normalMap: snowNormal, normalScale: new THREE.Vector2(0.25, 0.25) }), { density: 0.975, amount: 1.4 });
@@ -4884,10 +4969,12 @@ function buildChute(ctrl, opt = {}) {
 function chuteFrame(i) { const P0 = SLED.pts, N = P0.length - 1; const a = P0[Math.max(0, i - 1)], b = P0[Math.min(N, i + 1)]; const t = V3().subVectors(b, a).normalize(); const r = V3(t.z, 0, -t.x).normalize(); const u = V3().crossVectors(t, r).normalize(); return { p: P0[Math.min(N, Math.max(0, i))], t, r, u }; }
 // bolsjestribede pæle (flettet til ét mesh)
 const caneKit = newKit();
+// Halloween: orange og lilla striber og en orange knop (i jul rød, hvid og guld som før)
+const CANE_A = HALLO ? '#f07a1a' : '#d61f2c', CANE_B = HALLO ? '#3a1d5c' : '#f7f4ee', CANE_TOP = HALLO ? '#ffb347' : '#ffd24a';
 function candyPost(x, y, z, h = 1.1, r = 0.07) {
   if (AUDIT) AUDIT.posts.push([x, y, z]);
-  kitAdd(caneKit.gloss, new THREE.CylinderGeometry(r, r, h, 10, 12), (px, py, pz) => (Math.floor((py + Math.atan2(pz, px) * 0.05 + 10) / 0.16) % 2 ? '#d61f2c' : '#f7f4ee'), x, y + h / 2, z);
-  kitAdd(caneKit.gloss, SG(r * 1.5, 10, 8), '#ffd24a', x, y + h + 0.02, z);
+  kitAdd(caneKit.gloss, new THREE.CylinderGeometry(r, r, h, 10, 12), (px, py, pz) => (Math.floor((py + Math.atan2(pz, px) * 0.05 + 10) / 0.16) % 2 ? CANE_A : CANE_B), x, y + h / 2, z);
+  kitAdd(caneKit.gloss, SG(r * 1.5, 10, 8), CANE_TOP, x, y + h + 0.02, z);
 }
 { // selve banen
   const B = TOWER_BASE; const deckY = B + 0.32;
@@ -4901,8 +4988,8 @@ function candyPost(x, y, z, h = 1.1, r = 0.07) {
   for (let i = 3; i <= N; i += 4) { const f = chuteFrame(i); for (const [k, s] of [[0, -1], [1, 1]]) { const x = f.p.x + f.r.x * s * 1.78, z = f.p.z + f.r.z * s * 1.78, yy = f.p.y + 0.72; candyPost(x, yy, z); const top = V3(x, yy + 1.13, z); if (prev[k]) lightString(prev[k], top, 6, ['red', 'gold', 'warm', 'green', 'warm', 'blue'], 0.35, 1.1); prev[k] = top; } }
   // startportal med banner
   for (const s of [-1, 1]) candyPost(s * 2.05, deckY, -6.2, 3.1, 0.11);
-  const ban = canvasTex(1024, 192, (c, w, h) => { c.fillStyle = '#f7f1e6'; c.fillRect(0, 0, w, h); c.fillStyle = '#c8102e'; for (let i = 0; i < 22; i++) { c.beginPath(); c.moveTo(i * 48, 0); c.lineTo(i * 48 + 24, 0); c.lineTo(i * 48, 24); c.fill(); c.beginPath(); c.moveTo(i * 48, h); c.lineTo(i * 48 + 24, h); c.lineTo(i * 48, h - 24); c.fill(); }
-    c.font = 'bold 118px Fredoka, Trebuchet MS, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#7a0d18'; c.fillText('KÆLKEBAKKEN', w / 2 + 4, h / 2 + 10); c.fillStyle = '#d61f2c'; c.fillText('KÆLKEBAKKEN', w / 2, h / 2 + 5); });
+  const ban = canvasTex(1024, 192, (c, w, h) => { c.fillStyle = '#f7f1e6'; c.fillRect(0, 0, w, h); c.fillStyle = BAN_A; for (let i = 0; i < 22; i++) { if (HALLO) c.fillStyle = i % 2 ? BAN_A : '#5a2a8a'; c.beginPath(); c.moveTo(i * 48, 0); c.lineTo(i * 48 + 24, 0); c.lineTo(i * 48, 24); c.fill(); c.beginPath(); c.moveTo(i * 48, h); c.lineTo(i * 48 + 24, h); c.lineTo(i * 48, h - 24); c.fill(); }
+    c.font = 'bold 118px Fredoka, Trebuchet MS, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = BAN_SH; c.fillText('KÆLKEBAKKEN', w / 2 + 4, h / 2 + 10); c.fillStyle = BAN_TX; c.fillText('KÆLKEBAKKEN', w / 2, h / 2 + 5); });
   const banner = new THREE.Mesh(new THREE.PlaneGeometry(3.9, 0.72), new THREE.MeshStandardMaterial({ map: ban, roughness: 0.8, side: THREE.DoubleSide, emissive: col('#ffffff'), emissiveMap: ban, emissiveIntensity: 0.18 }));
   banner.position.set(0, deckY + 2.75, -6.2); banner.rotation.y = Math.PI; banner.castShadow = true; scene.add(banner);
   lightString(V3(-2.05, deckY + 3.2, -6.2), V3(2.05, deckY + 3.2, -6.2), 10, LIGHT_KINDS, 0.12, 1.2);
@@ -5035,8 +5122,8 @@ HOOKS.render.push((dt) => {
   // bolsjestribede pæle (eget sæt, flettet til ét mesh til sidst)
   const kit = newKit();
   const candy = (x, y, z, h, r = 0.085) => {
-    kitAdd(kit.gloss, new THREE.CylinderGeometry(r, r, h, 10, Math.max(6, Math.round(h * 11))), (px, py, pz) => (Math.floor((py + Math.atan2(pz, px) * 0.05 + 10) / 0.16) % 2 ? '#d61f2c' : '#f7f4ee'), x, y + h / 2, z);
-    kitAdd(kit.gloss, SG(r * 1.6, 10, 8), '#ffd24a', x, y + h + 0.03, z);
+    kitAdd(kit.gloss, new THREE.CylinderGeometry(r, r, h, 10, Math.max(6, Math.round(h * 11))), (px, py, pz) => (Math.floor((py + Math.atan2(pz, px) * 0.05 + 10) / 0.16) % 2 ? CANE_A : CANE_B), x, y + h / 2, z);
+    kitAdd(kit.gloss, SG(r * 1.6, 10, 8), CANE_TOP, x, y + h + 0.03, z);
     new Box(x, y + h / 2, z, r + 0.03, h / 2, r + 0.03, 0, 0, 0, { noCam: true });
   };
 
@@ -5074,8 +5161,8 @@ HOOKS.render.push((dt) => {
   groundGlow(ring0.x, ring0.z, 1.8, [1.0, 0.72, 0.3], 0.6);
   { const pc = at(1.7, V3()), tp = tan(1.7, V3()), sd = V3(tp.z, 0, -tp.x).normalize();
     for (const sg of [-1, 1]) { const x = pc.x + sd.x * sg * 1.45, z = pc.z + sd.z * sg * 1.45; candy(x, terrainH(x, z) - 0.05, z, 3.0, 0.1); }
-    const ban = canvasTex(1024, 192, (c, w, h) => { c.fillStyle = '#f7f1e6'; c.fillRect(0, 0, w, h); c.fillStyle = '#c8102e'; for (let i = 0; i < 22; i++) { c.beginPath(); c.moveTo(i * 48, 0); c.lineTo(i * 48 + 24, 0); c.lineTo(i * 48, 24); c.fill(); c.beginPath(); c.moveTo(i * 48, h); c.lineTo(i * 48 + 24, h); c.lineTo(i * 48, h - 24); c.fill(); }
-      c.font = 'bold 118px Fredoka, Trebuchet MS, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#7a0d18'; c.fillText('KÆLKELIFT', w / 2 + 4, h / 2 + 10); c.fillStyle = '#d61f2c'; c.fillText('KÆLKELIFT', w / 2, h / 2 + 5); });
+    const ban = canvasTex(1024, 192, (c, w, h) => { c.fillStyle = '#f7f1e6'; c.fillRect(0, 0, w, h); c.fillStyle = BAN_A; for (let i = 0; i < 22; i++) { if (HALLO) c.fillStyle = i % 2 ? BAN_A : '#5a2a8a'; c.beginPath(); c.moveTo(i * 48, 0); c.lineTo(i * 48 + 24, 0); c.lineTo(i * 48, 24); c.fill(); c.beginPath(); c.moveTo(i * 48, h); c.lineTo(i * 48 + 24, h); c.lineTo(i * 48, h - 24); c.fill(); }
+      c.font = 'bold 118px Fredoka, Trebuchet MS, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = BAN_SH; c.fillText('KÆLKELIFT', w / 2 + 4, h / 2 + 10); c.fillStyle = BAN_TX; c.fillText('KÆLKELIFT', w / 2, h / 2 + 5); });
     const banner = new THREE.Mesh(new THREE.PlaneGeometry(2.9, 0.54), new THREE.MeshStandardMaterial({ map: ban, roughness: 0.8, side: THREE.DoubleSide, emissive: col('#ffffff'), emissiveMap: ban, emissiveIntensity: 0.18 }));
     banner.position.set(pc.x, Math.max(terrainH(pc.x + sd.x * 1.45, pc.z + sd.z * 1.45), terrainH(pc.x - sd.x * 1.45, pc.z - sd.z * 1.45)) + 2.62, pc.z); banner.rotation.y = Math.atan2(-tp.x, -tp.z); banner.castShadow = true; scene.add(banner);
     dirSign(ring0.x - side0.x * 2.2, ring0.z - side0.z * 2.2, [['Kælkelift', Math.atan2(t0.x, t0.z), '#a0342c']]); }
@@ -5197,6 +5284,24 @@ HOOKS.render.push((dt) => {
 }
 
 if (AUDIT) { const t0 = performance.now(); window.__AUDIT = runAudit(); console.log('audit ms', Math.round(performance.now() - t0), 'items', window.__AUDIT.length); }
+// ═ Halloween: græskarlygter langs stien fra byen til tårnet og rundt om pladsen i byen. De står ved siden af stien, uden kollision,
+// og kun hvor der er frit (ingen pæle, træer, kasser eller sø). Bagt sammen med resten af pynten (bulbs.finish), så de koster få tegnekald.
+if (HALLO) {
+  const nrm = V3(), spots = [];
+  const free = (x, z, r) => { if (lakeF(x, z) < 1.2 || terrainNormal(x, z, nrm).y < 0.86) return false; for (const b of queryBoxes(x, z, r + 2)) { if (b.moving) continue; if (b.c.y - b.h.y > terrainH(b.c.x, b.c.z) + 1.6) continue; if (Math.hypot(b.c.x - x, b.c.z - z) < r + Math.max(b.h.x, b.h.z) + 0.3) return false; } for (const s of spots) if (Math.hypot(s[0] - x, s[1] - z) < r + s[2] + 0.4) return false; return true; };
+  const put = (x, z, s, fx, fz) => { if (!free(x, z, s)) return false; spots.push([x, z, s]); pumpkinLantern(STATIC, x, terrainH(x, z) - 0.06, z, s, Math.atan2(fx - x, fz - z)); if (pools.mesh.count < 196) groundGlow(x, z, 0.9 + s * 2.4, [1, 0.5, 0.15], 0.5); return true; };
+  // langs stien: hver 4. meter, skiftevis i venstre og højre side, nogle gange med et lille græskar ved siden af
+  const segs = []; let tot = 0; for (let i = 0; i < PATH.length - 1; i++) { const [ax, az] = PATH[i], [bx, bz] = PATH[i + 1]; const L = Math.hypot(bx - ax, bz - az); segs.push([ax, az, (bx - ax) / L, (bz - az) / L, tot, L]); tot += L; }
+  let side = 1;
+  for (let d = 2; d < tot - 2; d += 4.1) {
+    const sg = segs.find(q => d >= q[4] && d < q[4] + q[5]) || segs[segs.length - 1]; const u = d - sg[4], px = sg[0] + sg[2] * u, pz = sg[1] + sg[3] * u;
+    for (const off of [2.3, 2.9, 3.5]) { const x = px - sg[3] * off * side, z = pz + sg[2] * off * side, s = hrr(0.3, 0.44); if (put(x, z, s, px, pz)) { if (hrand() < 0.4) put(x + sg[2] * 0.75, z + sg[3] * 0.75, s * 0.6, px, pz); break; } }
+    side = -side;
+  }
+  // rundt om pladsen i byen
+  for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2 + hrr(-0.1, 0.1), r = hrr(9.5, 11.5); put(VILLAGE.x + Math.cos(a) * r, VILLAGE.z + Math.sin(a) * r, hrr(0.3, 0.45), VILLAGE.x, VILLAGE.z); }
+  if (TEST) window.__pumpkins = spots.length;
+}
 bulbs.finish();
 const TOTAL_COINS = coins.length;
 const TOTAL_BAUBLES = baubles.length + qblocks.filter(q => q.kind === 'bauble' || q.reward === 'bauble').length;
