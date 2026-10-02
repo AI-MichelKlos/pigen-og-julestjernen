@@ -17,7 +17,7 @@ En Halloween-tvilling til "Pigen og Julestjernen" i samme spil, så man kan væl
 - [x] 1. Fundament: et tema-valg i koden (?tema=halloween), himmel, lys og tåge i orange og lilla med fuldmåne, ny musik. Titlen er "Pigen og Græskarlygten".
 - [x] 2. Jorden og naturen: efterårsblade på jorden i stedet for sne, ingen sne på træer og tage (eventuelt lidt rimfrost), faldende blade i stedet for snefnug, frost på søen og kælkebakken.
 - [x] 3. Lys og pynt: orange og lilla lyskæder, græskarlygter langs stien og ved husene, spindelvæv og anden pynt i stedet for julepynt.
-- [ ] 4. Gaver og mål: de fem gaver bliver til noget halloween-agtigt (for eksempel slikposer eller græskar), julekuglerne bliver til noget andet at samle, julestjernen på tårnet bliver til en stor, smilende græskarlygte, og ikonerne øverst og på minikortet følger med.
+- [x] 4. Gaver og mål: de fem gaver bliver til noget halloween-agtigt (for eksempel slikposer eller græskar), julekuglerne bliver til noget andet at samle, julestjernen på tårnet bliver til en stor, smilende græskarlygte, og ikonerne øverst og på minikortet følger med.
 - [ ] 5. Figurer: heksehatte på rævene og bæverne, nissevennen bliver til et lille venligt spøgelse, nisserne i byen bliver udklædte, julemandens kane bliver til en heks på kost, og hoppesnemændene bliver til hoppegræskar.
 - [ ] 6. Aktiviteter: juletræet bliver til græskarlygter, der skal tændes, snemanden bliver til en fugleskræmsel, julekalenderen bliver til "slik eller ballade" ved husene, maden passer til Halloween, og julekortet bliver til et halloweenkort.
 - [ ] 7. Lyd og tekster: gå alle tekster, beskeder, nissevennens replikker og lyde igennem, så intet nævner jul i Halloween-udgaven.
@@ -71,6 +71,22 @@ Lavet:
 Mangler (kommer i de næste skridt):
 - Det store juletræ i byen (stjerne, julehjerter og flag) hører til skridt 6. Gavekasserne, julekuglerne og julestjernen på tårnet hører til skridt 4. Nisserne hører til skridt 5.
 
+### Skridt 4 (gaver og mål) - færdigt 2. oktober 2026
+
+Lavet:
+- De fem gaver er slikposer (COLLECTIBLES, `makeCandyBag`, `HALLO_BAG`): runde papirposer, bundet sammen med bånd og sløjfe, med prikker, striber, flagermus, små spøgelser eller zigzag. Farverne (`HALLO_BAG_COL`) bruges også i de fem felter øverst og på minikortet.
+- Gavekasserne (de kasser, man hopper på for at få mønter) har lilla papir med flagermus og orange bånd (`blockTex('gift')`).
+- Julekuglerne er bolsjer i papir (`BAUBLE_COLORS`, `candyEndGeo`, `candyWrapMats`, `candyStripeMat`) i orange, limegrøn, lilla, gul, lyserød og turkis.
+- Julehjerterne er almindelige røde hjerter (`heartTex`).
+- Julestjernen på tårnet er en stor, smilende græskarlygte (`buildStar`), der drejer langsomt frem og tilbage med orange glød og lys. Pigen bærer den, når hun vinder.
+- Overraskelserne i slikposerne (FIVE LITTLE GIFT SURPRISES): et lille spøgelse danser, tre flagermus flyver rundt, en regnbue af bolsjer, tre græskar danser, og stjernefesten er uændret.
+- Ikoner øverst: slikpose og bolsje. Minikortet (MINIKORT): efterårsfarver, slikposer, græskarlygte på tårnet, stråtag på husene, orange kant.
+- Beskeder om de skiftede ting: startbeskeden, "Slikpose fundet!", "Bolsje!", "Hjerte!", kompasset ("Næste slikpose", "Græskarlygten"), pauseskærmen og målskærmen.
+
+Mangler (kommer i de næste skridt):
+- Det store juletræ på minikortet har stadig en lille stjerne (skridt 6).
+- Resten af teksterne, fx nissevennens replikker og "Julehygge" ved 50 mønter, gennemgås i skridt 7.
+
 Afprøvning (se mappen `test/`):
 - `bash test/prep.sh` laver `test/game.html` med three.js fra npm. Start en server i `test/` med `python3 -m http.server 8123 --bind 127.0.0.1`.
 - `node test/shot.mjs game.html "?test&tema=halloween" billede.png [script.js]` tager et billede. Hvert billede tager 1 til 2 minutter.
@@ -79,5 +95,6 @@ Afprøvning (se mappen `test/`):
 - `test/world.js` måler landskabet (kasser man kan stå på, træer, terræn, mønter, gaver, kasser og julekugler). Det skal være ens i jul og Halloween og ens før og efter en ændring. Kør fx `node test/shot.mjs game.html "?test" none fingerprint.js,world.js` (flere scripts adskilt af komma).
 - Flere billeder i én omgang: `VIEWS='[{"p":[0,9,44],"l":[0,3,68]}]' node test/shot.mjs game.html "?test&tema=halloween" billede.png vent.js` giver `billede_0.png` osv. (p = kameraets plads, l = hvor det kigger hen). Gode steder: byen (0,9,44)->(0,3,68), kælkebakken mod øst (36,15,10)->(8,9,0), søen (-28,9,-8)->(-58,0,-30), tårnet (14,31,17)->(0,26,0).
 - `test/land.js` lander pigen og tæller bladene, der hvirvler op.
-- Efter skridt 2 og 3 var juleudgaven helt ens med før, og landskabet i Halloween var ens med julens.
+- Efter skridt 2, 3 og 4 var juleudgaven helt ens med før, og landskabet i Halloween var ens med julens.
+- I `VIEWS` kan et billede have `"js"`: kode, der køres først, fx `window.__view={p:[...],l:[...]}` ud fra en ting i spillet, eller `window.__GIFT_SURPRISE.trigger(0)` for at vise en overraskelse. `window.__GP` har `gifts`, `baubles`, `collectGift` og `winGame` til afprøvning.
 - Gode nærbilleder (med `"gy":true`, så højden regnes fra jorden): hus B's dør (10.6,2.2,80.3)->(13.8,1.4,74.4), tårnets dør (2.2,2.4,8.6)->(0,2.2,2.6), starten af kælkebakken (4,2.8,-14)->(0,2.4,-6.2).

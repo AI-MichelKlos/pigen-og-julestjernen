@@ -2710,9 +2710,33 @@ const GIFT_STYLE = [['#c8102e', '#ffd24a'], ['#1f7a3a', '#f4f4f4'], ['#2556a8', 
 const pillarTex = canvasTex(8, 128, (c, w, h) => { const gr = c.createLinearGradient(0, h, 0, 0); gr.addColorStop(0, 'rgba(255,255,255,.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(0, 0, w, h); }); pillarTex.colorSpace = THREE.NoColorSpace;
 const pillarGeo = new THREE.CylinderGeometry(0.7, 0.9, 16, 20, 1, true);
 const giftRingGeo = new THREE.PlaneGeometry(2.6, 2.6).rotateX(-Math.PI / 2);
+// Halloween: fem slikposer i stedet for julegaver. En rund papirpose, der er bundet sammen foroven med et bånd og en sløjfe, og som har et
+// mønster (prikker, striber, flagermus, stjerner, zigzag). HALLO_BAG_COL er posernes farver (bruges også i ikonet øverst og på kortet).
+const HALLO_BAG = [['#f07a1a', '#5a2a8a', '#6a2a9a', 'dots'], ['#7a42b8', '#f5a030', '#f07a1a', 'stripes'], ['#78c043', '#3a1d5c', '#6a2a9a', 'bats'], ['#f2eee6', '#5a2a8a', '#f07a1a', 'ghosts'], ['#f2c230', '#d0402a', '#6a2a9a', 'zigzag']];
+const HALLO_BAG_COL = HALLO_BAG.map(b => b[0]);
+function makeCandyBag(idx, s = 1) {
+  const [base, pat, rib, kind] = HALLO_BAG[idx % 5];
+  const tex = canvasTex(256, 128, (c, w, h) => {
+    c.fillStyle = base; c.fillRect(0, 0, w, h); c.fillStyle = pat; c.strokeStyle = pat;
+    if (kind === 'dots') { for (let y = 0; y < 4; y++) for (let x = 0; x < 8; x++) { c.beginPath(); c.arc(x * 32 + (y % 2) * 16 + 8, y * 32 + 16, 7, 0, 7); c.fill(); } }
+    else if (kind === 'stripes') { c.lineWidth = 9; for (let x = -128; x < 256; x += 32) { c.beginPath(); c.moveTo(x, h); c.lineTo(x + 128, 0); c.stroke(); } }
+    else if (kind === 'zigzag') { c.lineWidth = 7; for (const y of [30, 64, 98]) { c.beginPath(); for (let x = 0; x <= 256; x += 16) c.lineTo(x, y + ((x / 16) % 2 ? -9 : 9)); c.stroke(); } }
+    else { for (let y = 0; y < 2; y++) for (let x = 0; x < 4; x++) { const cx = x * 64 + (y % 2) * 32 + 16, cy = y * 64 + 34; c.save(); c.translate(cx, cy);
+      if (kind === 'bats') { c.beginPath(); c.moveTo(0, -5); c.lineTo(4, -11); c.lineTo(6, -4); c.quadraticCurveTo(14, -10, 24, -6); c.quadraticCurveTo(18, 0, 20, 6); c.quadraticCurveTo(12, 2, 8, 8); c.lineTo(0, 12); c.lineTo(-8, 8); c.quadraticCurveTo(-12, 2, -20, 6); c.quadraticCurveTo(-18, 0, -24, -6); c.quadraticCurveTo(-14, -10, -6, -4); c.lineTo(-4, -11); c.closePath(); c.fill(); }
+      else { c.beginPath(); c.arc(0, -4, 11, Math.PI, 0); c.lineTo(11, 12); c.lineTo(6, 8); c.lineTo(0, 12); c.lineTo(-6, 8); c.lineTo(-11, 12); c.closePath(); c.fillStyle = '#ffffff'; c.fill(); c.fillStyle = pat; c.beginPath(); c.arc(-4, -4, 2.2, 0, 7); c.arc(4, -4, 2.2, 0, 7); c.fill(); } // lille spøgelse
+      c.restore(); } }
+  }, [1, 1]);
+  const prof = [[0.001, 0], [0.3, 0], [0.38, 0.06], [0.42, 0.22], [0.4, 0.42], [0.3, 0.56], [0.13, 0.66], [0.085, 0.7], [0.1, 0.74], [0.19, 0.83], [0.22, 0.89], [0.16, 0.93], [0.001, 0.9]].map(([r, y]) => new THREE.Vector2(r * s, y * s));
+  const g = new THREE.Group();
+  const bag = new THREE.Mesh(new THREE.LatheGeometry(prof, 28), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.75, emissive: new THREE.Color().setRGB(1, 1, 1), emissiveMap: tex, emissiveIntensity: 0.22, side: THREE.DoubleSide })); bag.castShadow = true; g.add(bag);
+  const rm = new THREE.MeshStandardMaterial({ color: col(rib), roughness: 0.4, metalness: 0.2 });
+  const tie = new THREE.Mesh(new THREE.TorusGeometry(0.1 * s, 0.03 * s, 8, 18), rm); tie.rotation.x = Math.PI / 2; tie.position.y = 0.7 * s; g.add(tie);
+  for (const sx of [-1, 1]) { const l = new THREE.Mesh(new THREE.TorusGeometry(0.08 * s, 0.026 * s, 6, 12), rm); l.position.set(sx * 0.13 * s, 0.72 * s, 0.09 * s); l.scale.set(1, 0.7, 0.6); g.add(l); const e = new THREE.Mesh(new THREE.BoxGeometry(0.035 * s, 0.17 * s, 0.02 * s), rm); e.position.set(sx * 0.06 * s, 0.6 * s, 0.11 * s); e.rotation.z = sx * 0.35; g.add(e); }
+  return g;
+}
 function addGift(x, y, z, idx, name = '') {
   const g = new THREE.Group(); g.position.set(x, y, z); scene.add(g);
-  const mesh = makeGiftMesh(GIFT_STYLE[idx][0], GIFT_STYLE[idx][1], 0.9); mesh.position.y = 0.39; g.add(mesh);
+  const mesh = HALLO ? makeCandyBag(idx, 1.05) : makeGiftMesh(GIFT_STYLE[idx][0], GIFT_STYLE[idx][1], 0.9); mesh.position.y = HALLO ? 0 : 0.39; g.add(mesh);
   const pil = new THREE.Mesh(pillarGeo, new THREE.MeshBasicMaterial({ map: pillarTex, color: new THREE.Color().setRGB(1.0, 0.75, 0.3), transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })); pil.position.y = 8; g.add(pil);
   const ring = new THREE.Mesh(giftRingGeo, new THREE.MeshBasicMaterial({ map: glowTex, color: new THREE.Color().setRGB(1.2, 0.8, 0.35), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 })); ring.position.y = 0.06; g.add(ring);
   gifts.push({ g, mesh, pil, ring, pos: V3(x, y + 0.5, z), alive: true, t: rand() * 6, idx, name });
@@ -2720,7 +2744,7 @@ function addGift(x, y, z, idx, name = '') {
 function updateGifts(dt, t, pc) {
   for (const g of gifts) {
     if (!g.alive) { if (g.mesh.visible) { g.t += dt; g.mesh.position.y += dt * 4; g.mesh.rotation.y += dt * 12; g.mesh.scale.multiplyScalar(Math.exp(-dt * 4)); g.pil.material.opacity *= Math.exp(-dt * 5); g.ring.material.opacity *= Math.exp(-dt * 5); if (g.t > 0.8) { g.mesh.visible = false; g.pil.visible = false; g.ring.visible = false; } } continue; }
-    g.t += dt; g.mesh.rotation.y = t * 0.8; g.mesh.position.y = 0.39; /* står på overfladen og drejer langsomt */ g.pil.material.opacity = 0.25 + Math.sin(t * 2.5) * 0.08; g.ring.scale.setScalar(1 + Math.sin(t * 3 + g.idx) * 0.08);
+    g.t += dt; g.mesh.rotation.y = t * 0.8; g.mesh.position.y = HALLO ? 0.0 : 0.39; /* står på overfladen og drejer langsomt (slikposen har bunden i 0) */ g.pil.material.opacity = 0.25 + Math.sin(t * 2.5) * 0.08; g.ring.scale.setScalar(1 + Math.sin(t * 3 + g.idx) * 0.08);
     if (rand() < dt * 8) sparks.spawn(g.pos.x + rr(-0.7, 0.7), g.pos.y + rr(-0.3, 0.8), g.pos.z + rr(-0.7, 0.7), 0, rr(0.3, 0.9), 0, rr(0.8, 1.4), rr(0.08, 0.16), 1.6, 1.2, 0.5, 1, -0.2, 0.5);
     if (g.pos.distanceTo(pc) < 1.35 && GAME.state === 'play') collectGift(g);
   }
@@ -2730,6 +2754,9 @@ function updateGifts(dt, t, pc) {
 function blockTex(kind) {
   return canvasTex(128, 128, (c, w, h) => {
     if (kind === 'q') { const gr = c.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#f0d050'); gr.addColorStop(1, '#d99a12'); c.fillStyle = gr; c.fillRect(0, 0, w, h); c.strokeStyle = '#8a5a00'; c.lineWidth = 8; c.strokeRect(4, 4, w - 8, h - 8); c.fillStyle = '#8a5a00'; for (const [x, y] of [[16, 16], [112, 16], [16, 112], [112, 112]]) { c.beginPath(); c.arc(x, y, 5, 0, 7); c.fill(); } c.font = 'bold 84px Fredoka, Trebuchet MS, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#7a4a00'; c.fillText('?', w / 2 + 4, h / 2 + 10); c.fillStyle = '#fff8e0'; c.fillText('?', w / 2, h / 2 + 5); }
+    else if (kind === 'gift' && HALLO) { const gr = c.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#8a4ac8'); gr.addColorStop(1, '#4e2280'); c.fillStyle = gr; c.fillRect(0, 0, w, h); c.fillStyle = 'rgba(20,8,30,.45)';
+      for (const [bx, by] of [[30, 30], [98, 34], [32, 98], [96, 96]]) { c.save(); c.translate(bx, by); c.beginPath(); c.moveTo(0, -3); c.lineTo(3, -8); c.lineTo(4, -2); c.quadraticCurveTo(10, -7, 17, -4); c.quadraticCurveTo(13, 0, 14, 4); c.quadraticCurveTo(8, 1, 5, 5); c.lineTo(0, 8); c.lineTo(-5, 5); c.quadraticCurveTo(-8, 1, -14, 4); c.quadraticCurveTo(-13, 0, -17, -4); c.quadraticCurveTo(-10, -7, -4, -2); c.lineTo(-3, -8); c.closePath(); c.fill(); c.restore(); }
+      c.fillStyle = '#f5902a'; c.fillRect(w / 2 - 11, 0, 22, h); c.fillRect(0, h / 2 - 11, w, 22); c.fillStyle = '#ffc070'; c.fillRect(w / 2 - 11, 0, 5, h); c.fillRect(0, h / 2 - 11, w, 5); c.strokeStyle = '#2a1040'; c.lineWidth = 7; c.strokeRect(3.5, 3.5, w - 7, h - 7); } // Halloween: lilla papir med flagermus og orange bånd
     else if (kind === 'gift') { const gr = c.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#e8434e'); gr.addColorStop(1, '#a8151f'); c.fillStyle = gr; c.fillRect(0, 0, w, h); c.fillStyle = 'rgba(255,255,255,.14)'; for (let i = -4; i < 8; i++) { c.beginPath(); c.moveTo(i * 24, 0); c.lineTo(i * 24 + 12, 0); c.lineTo(i * 24 + 12 + h, h); c.lineTo(i * 24 + h, h); c.fill(); } c.fillStyle = '#ffd24a'; c.fillRect(w / 2 - 11, 0, 22, h); c.fillRect(0, h / 2 - 11, w, 22); c.fillStyle = '#ffec9a'; c.fillRect(w / 2 - 11, 0, 5, h); c.fillRect(0, h / 2 - 11, w, 5); c.strokeStyle = '#6d0c15'; c.lineWidth = 7; c.strokeRect(3.5, 3.5, w - 7, h - 7); }
     else { c.fillStyle = '#8a6a44'; c.fillRect(0, 0, w, h); c.strokeStyle = '#5a4020'; c.lineWidth = 8; c.strokeRect(4, 4, w - 8, h - 8); c.fillStyle = '#5a4020'; for (const [x, y] of [[18, 18], [110, 18], [18, 110], [110, 110]]) { c.beginPath(); c.arc(x, y, 6, 0, 7); c.fill(); } }
   });
@@ -2779,7 +2806,8 @@ HOOKS.physics.push(() => {
 });
 
 // ── Julehjerter (giver liv) ──
-const heartTex = canvasTex(64, 64, (c) => { for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) { c.fillStyle = (i + j) % 2 ? '#d0142e' : '#f8f4ec'; c.fillRect(i * 8, j * 8, 8, 8); } });
+const heartTex = canvasTex(64, 64, (c) => { if (HALLO) { c.fillStyle = '#d0142e'; c.fillRect(0, 0, 64, 64); const gr = c.createRadialGradient(22, 40, 2, 22, 40, 22); gr.addColorStop(0, 'rgba(255,170,180,.8)'); gr.addColorStop(1, 'rgba(255,170,180,0)'); c.fillStyle = gr; c.fillRect(0, 0, 64, 64); return; } // Halloween: helt rødt hjerte med et lille glimt
+  for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) { c.fillStyle = (i + j) % 2 ? '#d0142e' : '#f8f4ec'; c.fillRect(i * 8, j * 8, 8, 8); } });
 const heartGeo = (() => { const hs = new THREE.Shape(); hs.moveTo(0, -0.34); hs.bezierCurveTo(0.42, 0.0, 0.37, 0.36, 0.16, 0.36); hs.bezierCurveTo(0.04, 0.36, 0, 0.25, 0, 0.18); hs.bezierCurveTo(0, 0.25, -0.04, 0.36, -0.16, 0.36); hs.bezierCurveTo(-0.37, 0.36, -0.42, 0, 0, -0.34); const g = new THREE.ExtrudeGeometry(hs, { depth: 0.1, bevelEnabled: true, bevelThickness: 0.04, bevelSize: 0.03, bevelSegments: 2 }); g.center(); const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 1.3 + 0.5, uv.getY(i) * 1.3 + 0.5); return g; })();
 const heartMat = new THREE.MeshStandardMaterial({ map: heartTex, roughness: 0.55, emissive: new THREE.Color().setRGB(0.35, 0.05, 0.08), emissiveMap: heartTex, emissiveIntensity: 0.6 });
 const heartHaloMat = new THREE.SpriteMaterial({ map: glowTex, color: new THREE.Color().setRGB(1.3, 0.35, 0.4), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
@@ -2800,7 +2828,14 @@ function updateHearts3D(dt, t, pc) {
 }
 
 // ── Julekugler (samleobjekter, nogle er gemt) ──
-const BAUBLE_COLORS = ['#c8102e', '#1f8a4a', '#2c5fc4', '#e0a820', '#b04ad0', '#e8e8f0'];
+// Halloween: bolsjer i papir (orange, limegrøn, lilla, gul, lyserød og turkis) i stedet for julekugler
+const BAUBLE_COLORS = HALLO ? ['#f07a1a', '#6ac83a', '#8a4ad0', '#f2c020', '#e8457e', '#30b8c8'] : ['#c8102e', '#1f8a4a', '#2c5fc4', '#e0a820', '#b04ad0', '#e8e8f0'];
+// bolsjets form: en lidt aflang kugle, papiret snoet sammen i begge ender (to kegler med en lille vulst) og en hvid stribe rundt
+const candyEndGeo = HALLO ? (() => { const ni = g => { g = g.index ? g.toNonIndexed() : g; for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal') g.deleteAttribute(k); return g; };
+  const parts = []; for (const sx of [-1, 1]) { const c = new THREE.ConeGeometry(0.17, 0.24, 10); c.rotateZ(sx * Math.PI / 2); c.translate(sx * 0.5, 0, 0); parts.push(ni(c)); const t = new THREE.TorusGeometry(0.05, 0.03, 6, 10); t.rotateY(Math.PI / 2); t.translate(sx * 0.37, 0, 0); parts.push(ni(t)); }
+  return mergeGeometries(parts); })() : null;
+const candyWrapMats = HALLO ? BAUBLE_COLORS.map(c => { const k = col(c); return new THREE.MeshPhysicalMaterial({ color: k.clone().lerp(new THREE.Color(1, 1, 1), 0.35), roughness: 0.15, clearcoat: 1, transparent: true, opacity: 0.85, emissive: k, emissiveIntensity: 0.15 }); }) : null;
+const candyStripeMat = HALLO ? new THREE.MeshStandardMaterial({ color: col('#fff6ea'), roughness: 0.3, emissive: col('#3a3020') }) : null;
 const baubleGeo = new THREE.SphereGeometry(0.32, 24, 18);
 const baubleCapGeo = (() => { const a = new THREE.CylinderGeometry(0.09, 0.1, 0.1, 12); a.translate(0, 0.35, 0); const b = new THREE.TorusGeometry(0.05, 0.015, 6, 12); b.translate(0, 0.43, 0); const ni = g => { g = g.index ? g.toNonIndexed() : g; for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal') g.deleteAttribute(k); return g; }; return mergeGeometries([ni(a), ni(b)]); })();
 const baubleStripeGeo = new THREE.TorusGeometry(0.315, 0.035, 8, 32).rotateX(Math.PI / 2);
@@ -2810,7 +2845,8 @@ const baubles = [];
 function addBauble(x, y, z, ci = 0, pop = false, secret = null) {
   const g = new THREE.Group(); g.position.set(x, y, z); scene.add(g); ci = ci % BAUBLE_COLORS.length;
   const m = new THREE.Mesh(baubleGeo, baubleMats[ci]); m.castShadow = true; g.add(m);
-  const cap = new THREE.Mesh(baubleCapGeo, M.gold); g.add(cap); const st = new THREE.Mesh(baubleStripeGeo, M.gold); g.add(st);
+  if (HALLO) { m.scale.set(1.15, 0.9, 0.9); g.add(new THREE.Mesh(candyEndGeo, candyWrapMats[ci])); const st = new THREE.Mesh(baubleStripeGeo, candyStripeMat); st.rotation.z = Math.PI / 2; st.scale.set(0.9, 0.9, 0.9); g.add(st); } // Halloween: bolsje
+  else { const cap = new THREE.Mesh(baubleCapGeo, M.gold); g.add(cap); const st = new THREE.Mesh(baubleStripeGeo, M.gold); g.add(st); }
   const h = new THREE.Sprite(baubleHaloMats[ci]); h.scale.setScalar(1.7); g.add(h);
   const o = { g, pos: g.position, base: y, alive: true, t: rand() * 5, vy: pop ? 8 : 0, pop, ci, secret }; baubles.push(o); return o;
 }
@@ -2863,20 +2899,23 @@ function activateLantern(L, quiet = false) {
 
 // ── Julestjernen ──
 let STAR = null;
+// Halloween: en stor, smilende græskarlygte sidder på stangen i stedet for julestjernen (samme plads, glød og lys, bare orange)
 function buildStar(pos) {
   const g = new THREE.Group(); g.position.copy(pos); scene.add(g);
-  const m = new THREE.Mesh(starGeometry(1.05, 0.45, 0.3), new THREE.MeshStandardMaterial({ color: col('#ffd24a'), emissive: col('#ffae00'), emissiveIntensity: 1.8, metalness: 0.5, roughness: 0.25 })); g.add(m);
-  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: new THREE.Color().setRGB(1.0, 0.72, 0.3), blending: THREE.AdditiveBlending, depthWrite: false })); halo.scale.setScalar(3.6); g.add(halo);
+  let m;
+  if (HALLO) { m = new THREE.Group(); pumpkinLantern(m, 0, -0.95 * 0.74, 0, 0.95, 0); g.add(m); }
+  else { m = new THREE.Mesh(starGeometry(1.05, 0.45, 0.3), new THREE.MeshStandardMaterial({ color: col('#ffd24a'), emissive: col('#ffae00'), emissiveIntensity: 1.8, metalness: 0.5, roughness: 0.25 })); g.add(m); }
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: HALLO ? new THREE.Color().setRGB(1.0, 0.5, 0.15) : new THREE.Color().setRGB(1.0, 0.72, 0.3), blending: THREE.AdditiveBlending, depthWrite: false })); halo.scale.setScalar(3.6); g.add(halo);
   const raysTex = canvasTex(256, 256, (c, w, h) => { c.translate(w / 2, h / 2); for (let i = 0; i < 16; i++) { c.rotate(Math.PI / 8); const gr = c.createLinearGradient(0, 0, w / 2, 0); gr.addColorStop(0, 'rgba(255,230,160,.7)'); gr.addColorStop(1, 'rgba(255,230,160,0)'); c.fillStyle = gr; c.beginPath(); c.moveTo(0, 0); c.lineTo(w / 2, -(i % 2 ? 4 : 9)); c.lineTo(w / 2, i % 2 ? 4 : 9); c.fill(); } });
-  const rays = new THREE.Sprite(new THREE.SpriteMaterial({ map: raysTex, color: new THREE.Color().setRGB(0.28, 0.21, 0.12), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true })); rays.scale.setScalar(7); g.add(rays);
-  const L = new THREE.PointLight(col('#ffc060'), 22, 26, 1.4); g.add(L);
+  const rays = new THREE.Sprite(new THREE.SpriteMaterial({ map: raysTex, color: HALLO ? new THREE.Color().setRGB(0.3, 0.14, 0.05) : new THREE.Color().setRGB(0.28, 0.21, 0.12), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true })); rays.scale.setScalar(7); g.add(rays);
+  const L = new THREE.PointLight(col(HALLO ? '#ff9a40' : '#ffc060'), 22, 26, 1.4); g.add(L);
   STAR = { g, m, halo, rays, pos: pos.clone(), taken: false, t: 0 };
 }
 function updateStar(dt, t, pc) {
   if (!STAR) return;
   if (!STAR.taken) {
-    STAR.t += dt; STAR.m.rotation.y = t * 1.5; STAR.g.position.y = STAR.pos.y; /* sidder fast på guldstangen */ STAR.rays.material.rotation = t * 0.15; STAR.halo.scale.setScalar(3.2 + Math.sin(t * 3) * 0.4);
-    if (rand() < dt * 20) sparks.spawn(STAR.g.position.x + rr(-1.2, 1.2), STAR.g.position.y + rr(-1.2, 1.2), STAR.g.position.z + rr(-1.2, 1.2), rr(-0.3, 0.3), rr(-0.8, 0.2), rr(-0.3, 0.3), rr(1, 2), rr(0.1, 0.2), 1.8, 1.4, 0.6, 1, 0.3, 0.2);
+    STAR.t += dt; STAR.m.rotation.y = HALLO ? Math.sin(t * 0.7) * 1.3 : t * 1.5; STAR.g.position.y = STAR.pos.y; /* græskarret drejer langsomt frem og tilbage, så ansigtet ses */ /* sidder fast på guldstangen */ STAR.rays.material.rotation = t * 0.15; STAR.halo.scale.setScalar(3.2 + Math.sin(t * 3) * 0.4);
+    if (rand() < dt * 20) sparks.spawn(STAR.g.position.x + rr(-1.2, 1.2), STAR.g.position.y + rr(-1.2, 1.2), STAR.g.position.z + rr(-1.2, 1.2), rr(-0.3, 0.3), rr(-0.8, 0.2), rr(-0.3, 0.3), rr(1, 2), rr(0.1, 0.2), 1.8, HALLO ? 0.9 : 1.4, HALLO ? 0.3 : 0.6, 1, 0.3, 0.2);
     if (STAR.g.position.distanceTo(pc) < 1.8 && GAME.state === 'play') winGame();
   } else {
     const hp = viking.hold ? viking.hold.getWorldPosition(_tmpC) : viking.head.localToWorld(_tmpC.set(0, 1.35, 0)); STAR.g.position.lerp(hp, 1 - Math.exp(-6 * dt)); STAR.m.rotation.y = t * 4; STAR.g.scale.setScalar(damp(STAR.g.scale.x, 0.55, 3, dt));
@@ -5512,6 +5551,12 @@ const MAX_COINS = TOTAL_COINS + qblocks.reduce((s, q) => s + (q.kind === 'coin' 
 const $ = (id) => document.getElementById(id);
 function heartSVG() { return '<svg viewBox="0 0 32 32"><path d="M16 28S3 20 3 11.5C3 7 6.5 4 10.2 4c2.6 0 4.6 1.4 5.8 3.4C17.2 5.4 19.2 4 21.8 4 25.5 4 29 7 29 11.5 29 20 16 28 16 28z" fill="#e8434e" stroke="#fff" stroke-width="2.5"/><path d="M9 9c-1.5 1-2 3-1.5 4.5" stroke="#ffb0b5" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>'; }
 $('hearts').innerHTML = heartSVG() + heartSVG() + heartSVG();
+if (HALLO) { // Halloween: slikpose og bolsje i stedet for gave og julekugle, og posernes farver i de fem små felter
+  $('giftPill').querySelector('svg').outerHTML = '<svg viewBox="0 0 32 32"><path d="M10 13Q5 29 16 29Q27 29 22 13Q19 11 16 11Q13 11 10 13Z" fill="#f07a1a" stroke="#7a3500" stroke-width="2"/><path d="M11.5 9.5Q16 2 20.5 9.5Q16 7.5 11.5 9.5Z" fill="#f07a1a" stroke="#7a3500" stroke-width="1.8"/><rect x="11" y="9.2" width="10" height="3.4" rx="1.5" fill="#7a3ab0"/><circle cx="12.5" cy="20" r="1.8" fill="#5a2a8a"/><circle cx="19.5" cy="18" r="1.8" fill="#5a2a8a"/><circle cx="16" cy="24.5" r="1.8" fill="#5a2a8a"/></svg>';
+  [...$('giftSlots').children].forEach((el, i) => el.style.setProperty('--c', HALLO_BAG_COL[i]));
+  $('baublePill').querySelector('svg').outerHTML = '<svg viewBox="0 0 32 32"><path d="M8 16L2 10.5V21.5Z" fill="#ffb066" stroke="#7a3500" stroke-width="1.6" stroke-linejoin="round"/><path d="M24 16L30 10.5V21.5Z" fill="#ffb066" stroke="#7a3500" stroke-width="1.6" stroke-linejoin="round"/><ellipse cx="16" cy="16" rx="9" ry="7.5" fill="#f07a1a" stroke="#7a3500" stroke-width="2"/><path d="M16 8.6V23.4" stroke="#fff6ea" stroke-width="3"/><circle cx="12.5" cy="13" r="2.2" fill="#ffd0a0" opacity=".8"/></svg>';
+  $('compText').innerHTML = 'Slikpose<small>0 m</small>';
+}
 $('baubleOf').textContent = '/' + TOTAL_BAUBLES;
 $('musicBtn').textContent = 'Musik: ' + (Audio.musicOn ? 'til' : 'fra');
 let _lastHealth = 3;
@@ -5529,7 +5574,7 @@ function fmtTime(s) { s = Math.round(s); return `${Math.floor(s / 60)}:${String(
 function setPause(on) {
   if (GAME.state === 'win' || GAME.state === 'title') return; if (on === (GAME.state === 'pause')) return;
   GAME.state = on ? 'pause' : 'play'; $('pause').classList.toggle('hidden', !on); Audio.pauseSnd();
-  if (on) { $('pauseStats').innerHTML = `Julegaver <b>${GAME.gifts}/5</b> · Mønter <b>${GAME.coins}</b> · Julekugler <b>${GAME.baubles}/${TOTAL_BAUBLES}</b> · Tid <b>${fmtTime(GAME.time)}</b>`; if (document.pointerLockElement) document.exitPointerLock(); $('bubble').classList.remove('on'); }
+  if (on) { $('pauseStats').innerHTML = `${HALLO ? 'Slikposer' : 'Julegaver'} <b>${GAME.gifts}/5</b> · Mønter <b>${GAME.coins}</b> · ${HALLO ? 'Bolsjer' : 'Julekugler'} <b>${GAME.baubles}/${TOTAL_BAUBLES}</b> · Tid <b>${fmtTime(GAME.time)}</b>`; if (document.pointerLockElement) document.exitPointerLock(); $('bubble').classList.remove('on'); }
   $('musicBtn').textContent = 'Musik: ' + (Audio.musicOn ? 'til' : 'fra');
 }
 $('resumeBtn').addEventListener('click', (e) => { e.stopPropagation(); setPause(false); if (!TEST && !isTouch) cvs.requestPointerLock?.(); });
@@ -5539,7 +5584,7 @@ function startGame() {
   Audio.wantSong = 'jingle'; Audio.init(); Audio.playSong('jingle');
   $('start').classList.add('hidden'); $('hud').classList.add('on'); $('help').classList.add('on'); setTimeout(() => $('help').classList.remove('on'), 14000);
   GAME.state = 'play'; CAM.snap = true; CAM.yaw = 0; CAM.pitch = 0.2; if (!isTouch && !TEST) cvs.requestPointerLock?.();
-  setTimeout(() => toast('Find de 5 julegaver', 'og klatr op til julestjernen på Himmelbjergtårnet'), 600);
+  setTimeout(() => HALLO ? toast('Find de 5 slikposer', 'og klatr op til græskarlygten på Himmelbjergtårnet') : toast('Find de 5 julegaver', 'og klatr op til julestjernen på Himmelbjergtårnet'), 600);
 }
 $('startBtn').addEventListener('click', startGame);
 $('againBtn').addEventListener('click', () => location.reload());
@@ -5558,17 +5603,18 @@ function collectCoin(c) {
 }
 function collectGift(g) {
   g.alive = false; g.t = 0; GAME.gifts++; $('giftN').textContent = GAME.gifts + '/5'; $('giftSlots').children[g.idx]?.classList.add('got'); bumpPill('giftPill'); Audio.gift();
-  toast(GAME.gifts === 5 ? 'Alle julegaver fundet!' : 'Julegave fundet!', GAME.gifts === 5 ? 'Nu mangler kun julestjernen på tårnet' : `${GAME.gifts} af 5 - ${g.name}`);
+  if (HALLO) toast(GAME.gifts === 5 ? 'Alle slikposer fundet!' : 'Slikpose fundet!', GAME.gifts === 5 ? 'Nu mangler kun græskarlygten på tårnet' : `${GAME.gifts} af 5 - ${g.name}`);
+  else toast(GAME.gifts === 5 ? 'Alle julegaver fundet!' : 'Julegave fundet!', GAME.gifts === 5 ? 'Nu mangler kun julestjernen på tårnet' : `${GAME.gifts} af 5 - ${g.name}`);
   sparkleBurst(g.pos.x, g.pos.y, g.pos.z, 40, 1, 0.8, 0.4, 6); for (let i = 0; i < 30; i++) { const c = [[2, 0.2, 0.2], [0.3, 2, 0.4], [2, 1.6, 0.3], [2, 2, 2]][i % 4]; sparks.spawn(g.pos.x, g.pos.y + 0.5, g.pos.z, rr(-5, 5), rr(4, 9), rr(-5, 5), rr(1, 1.8), rr(0.12, 0.22), c[0], c[1], c[2], 1, 12, 1.2, 0); }
 }
 function collectHeart(o) {
   const full = P.health >= 3; if (!full) { P.health++; updateHearts(); } Audio.heart(); sparkleBurst(o.pos.x, o.pos.y, o.pos.z, 24, 1.2, 0.3, 0.35, 4);
-  toast('Julehjerte!', full ? 'Du har allerede fuldt liv - +3 mønter' : '+1 liv'); if (full) for (let i = 0; i < 3; i++) addCoin(o.pos.x, o.pos.y + 0.3, o.pos.z, { pop: 1 });
+  toast(HALLO ? 'Hjerte!' : 'Julehjerte!', full ? 'Du har allerede fuldt liv - +3 mønter' : '+1 liv'); if (full) for (let i = 0; i < 3; i++) addCoin(o.pos.x, o.pos.y + 0.3, o.pos.z, { pop: 1 });
 }
 function collectBauble(o) {
   GAME.baubles++; $('baubleN').textContent = GAME.baubles; bumpPill('baublePill'); Audio.bell(); const k = col(BAUBLE_COLORS[o.ci]);
   sparkleBurst(o.pos.x, o.pos.y, o.pos.z, 30, k.r + 0.3, k.g + 0.3, k.b + 0.3, 5);
-  if (o.secret) foundSecret(o.secret); toast(GAME.baubles === TOTAL_BAUBLES ? 'Alle julekugler!' : 'Julekugle!', `${GAME.baubles} af ${TOTAL_BAUBLES}`);
+  if (o.secret) foundSecret(o.secret); toast(GAME.baubles === TOTAL_BAUBLES ? (HALLO ? 'Alle bolsjer!' : 'Alle julekugler!') : (HALLO ? 'Bolsje!' : 'Julekugle!'), `${GAME.baubles} af ${TOTAL_BAUBLES}`);
 }
 function foundSecret(key) { if (GAME.secretSet.has(key)) return; GAME.secretSet.add(key); GAME.secrets++; Audio.secret(); toast('Hemmelighed fundet!', `${GAME.secrets} af ${TOTAL_SECRETS}`); }
 function updateCollectibles(dt, t) {
@@ -5654,7 +5700,7 @@ HOOKS.update.push((dt, t, state) => {
   if (typeof GUIDE !== 'undefined' && GUIDE.enabled && GUIDE.active && GUIDE.route?.id < 5) { const targetGift = gifts.find(g => g.alive && g.idx === GUIDE.route.id); if (targetGift) { best = targetGift.pos; bd = Math.hypot(best.x - P.pos.x, best.z - P.pos.z); } }
   // blødt klokke-glimt, der bliver tættere og kraftigere, jo nærmere man er en gave
   if (best) { const d3 = best.distanceTo(P.pos); _comp.tw -= dt; if (d3 < 12 && _comp.tw <= 0) { const k = 1 - d3 / 12; Audio.twinkle(0.008 + 0.03 * k * k); _comp.tw = lerp(1.4, 0.45, k); } }
-  let label = typeof GUIDE !== 'undefined' && GUIDE.enabled && GUIDE.active ? 'Næste gave' : 'Nærmeste gave'; if (!best && STAR && !STAR.taken) { best = STAR.pos; bd = Math.hypot(best.x - P.pos.x, best.z - P.pos.z); label = 'Julestjernen'; }
+  let label = typeof GUIDE !== 'undefined' && GUIDE.enabled && GUIDE.active ? (HALLO ? 'Næste slikpose' : 'Næste gave') : (HALLO ? 'Nærmeste slikpose' : 'Nærmeste gave'); if (!best && STAR && !STAR.taken) { best = STAR.pos; bd = Math.hypot(best.x - P.pos.x, best.z - P.pos.z); label = HALLO ? 'Græskarlygten' : 'Julestjernen'; }
   if (!best) { el.classList.add('off'); return; }
   if (!_comp.shown) { el.classList.remove('off'); _comp.shown = true; }
   const dx = best.x - P.pos.x, dz = best.z - P.pos.z; const fx = -Math.sin(CAM.yaw), fz = -Math.cos(CAM.yaw), rx = Math.cos(CAM.yaw), rz = -Math.sin(CAM.yaw);
@@ -5669,9 +5715,10 @@ function winGame() {
   if (document.pointerLockElement) document.exitPointerLock();
   const nStars = 1 + (GAME.gifts >= 5 ? 1 : 0) + (GAME.baubles >= TOTAL_BAUBLES ? 1 : 0);
   $('winStars').innerHTML = [0, 1, 2].map(i => `<span class="${i < nStars ? '' : 'dim'}">★</span>`).join('');
-  $('winMsg').textContent = nStars === 3 ? 'Perfekt! Du fandt alt - en ægte julehelt!' : nStars === 2 ? 'Alle fem gaver er reddet. Kan du også finde alle julekugler?' : 'Julestjernen lyser igen! Prøv at finde alle gaverne næste gang.';
+  $('winMsg').textContent = HALLO ? (nStars === 3 ? 'Perfekt! Du fandt alt - en ægte halloweenhelt!' : nStars === 2 ? 'Alle fem slikposer er fundet. Kan du også finde alle bolsjer?' : 'Græskarlygten lyser! Prøv at finde alle slikposerne næste gang.')
+    : nStars === 3 ? 'Perfekt! Du fandt alt - en ægte julehelt!' : nStars === 2 ? 'Alle fem gaver er reddet. Kan du også finde alle julekugler?' : 'Julestjernen lyser igen! Prøv at finde alle gaverne næste gang.';
   const st = (v, l) => `<div class="stat"><div class="v">${v}</div><div class="l">${l}</div></div>`;
-  $('winStats').innerHTML = st(`${GAME.coins}`, `mønter af ${MAX_COINS}`) + st(`${GAME.gifts}/5`, 'julegaver') + st(`${GAME.baubles}/${TOTAL_BAUBLES}`, 'julekugler') + st(`${GAME.secrets}/${TOTAL_SECRETS}`, 'hemmeligheder') + st(`${GAME.defeated}`, 'nye venner') + st(fmtTime(GAME.time), 'tid');
+  $('winStats').innerHTML = st(`${GAME.coins}`, `mønter af ${MAX_COINS}`) + st(`${GAME.gifts}/5`, HALLO ? 'slikposer' : 'julegaver') + st(`${GAME.baubles}/${TOTAL_BAUBLES}`, HALLO ? 'bolsjer' : 'julekugler') + st(`${GAME.secrets}/${TOTAL_SECRETS}`, 'hemmeligheder') + st(`${GAME.defeated}`, 'nye venner') + st(fmtTime(GAME.time), 'tid');
   setTimeout(() => $('win').classList.remove('hidden'), 2600); $('hud').classList.remove('on');
   setTimeout(() => Audio.playSong('silent'), 3200);
 }
@@ -6169,8 +6216,9 @@ window.__GUIDE = GUIDE;
 // ═════════════════════════ SECTION: FIVE LITTLE GIFT SURPRISES ═════════════════════════
 // Reusable toys: no collisions, extra controls, forced camera changes or delayed timers.
 const GIFT_SURPRISES = (() => {
-  const colors = ['#ff6978', '#ffc84b', '#7ae8b3', '#78d8ff', '#c9a3ff'];
-  const labels = ['En snemand danser for dig!', 'Små rensdyr flyver med dig!', 'En regnbue af snefnug!', 'Juleklokkerne danser!', 'Din helt egen stjernefest!'];
+  // Halloween: et lille spøgelse, flagermus, en regnbue af bolsjer og dansende græskar i stedet for snemand, rensdyr, snefnug og klokker
+  const colors = HALLO ? ['#ff8a2a', '#b46cff', '#8aea5a', '#ffd04a', '#ff6fa8'] : ['#ff6978', '#ffc84b', '#7ae8b3', '#78d8ff', '#c9a3ff'];
+  const labels = HALLO ? ['Et lille spøgelse danser for dig!', 'Små flagermus flyver med dig!', 'En regnbue af bolsjer!', 'Græskarrene danser!', 'Din helt egen stjernefest!'] : ['En snemand danser for dig!', 'Små rensdyr flyver med dig!', 'En regnbue af snefnug!', 'Juleklokkerne danser!', 'Din helt egen stjernefest!'];
   const root = new THREE.Group(); root.name = 'Gaveoverraskelser'; scene.add(root);
   const toys = []; const seen = new Set(); let lastGameTime = 0, lastCount = 0;
   // Use the game's soft cloth/fur materials and cache every shape for subsequent play.
@@ -6187,6 +6235,12 @@ const GIFT_SURPRISES = (() => {
   // Red present: a little snowman waves his twig arms and hops to the music.
   {
     const t = toy(0, 7), k = newKit();
+    if (HALLO) { // et lille, venligt spøgelse med bølget kant, store øjne og røde kinder
+      sphere(k, '#f6f2ff', 0, 0.62, 0, 0.3, 1, 1.25, 1); sphere(k, '#f6f2ff', 0, 0.38, 0, 0.27);
+      for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; sphere(k, '#f1ecfb', Math.cos(a) * 0.2, 0.2, Math.sin(a) * 0.2, 0.11); }
+      for (const x of [-0.1, 0.1]) { sphere(k, '#2a1838', x, 0.72, 0.27, 0.05, 0.8, 1.2, 0.5); sphere(k, '#ffffff', x + 0.015, 0.75, 0.29, 0.014); sphere(k, '#ffb0c8', x * 1.7, 0.6, 0.24, 0.035, 1, 0.7, 0.5); }
+      sphere(k, '#2a1838', 0, 0.58, 0.29, 0.05, 1.3, 0.8, 0.5);
+    } else {
     sphere(k, '#f4fbff', 0, 0.32, 0, 0.33); sphere(k, '#ffffff', 0, 0.77, 0, 0.25);
     for (const x of [-0.083, 0.083]) sphere(k, '#283341', x, 0.8, 0.226, 0.026);
     for (let i = 0; i < 5; i++) { const a = Math.PI * (0.18 + i * 0.16); sphere(k, '#283341', Math.cos(a) * 0.092, 0.735 - Math.sin(a) * 0.052, 0.226, 0.012); }
@@ -6197,10 +6251,13 @@ const GIFT_SURPRISES = (() => {
     part(k, 'cloth', new THREE.CylinderGeometry(0.23, 0.23, 0.045, 16), '#283850', 0, 1.01, 0);
     part(k, 'cloth', new THREE.CylinderGeometry(0.145, 0.15, 0.25, 14), '#283850', 0, 1.145, 0);
     part(k, 'cloth', new THREE.CylinderGeometry(0.151, 0.154, 0.05, 14), '#ffd24a', 0, 1.05, 0);
+    }
     t.body = model(finish(k), t.g); t.arms = [];
-    const arm = newKit(); part(arm, 'cloth', new THREE.CylinderGeometry(0.02, 0.025, 0.3, 6), '#84583a', 0, 0.15, 0);
-    for (const s of [-1, 1]) part(arm, 'cloth', new THREE.CylinderGeometry(0.014, 0.018, 0.14, 5), '#84583a', s * 0.04, 0.29, 0, 1, 1, 1, 0, 0, s * -0.6);
-    const arms = finish(arm); for (const s of [-1, 1]) t.arms.push(model(arms, t.body, s * 0.27, 0.53, 0));
+    const arm = newKit();
+    if (HALLO) sphere(arm, '#f6f2ff', 0, 0.12, 0, 0.07, 0.8, 1.8, 0.8); // spøgelsets små arme
+    else { part(arm, 'cloth', new THREE.CylinderGeometry(0.02, 0.025, 0.3, 6), '#84583a', 0, 0.15, 0);
+      for (const s of [-1, 1]) part(arm, 'cloth', new THREE.CylinderGeometry(0.014, 0.018, 0.14, 5), '#84583a', s * 0.04, 0.29, 0, 1, 1, 1, 0, 0, s * -0.6); }
+    const arms = finish(arm); for (const s of [-1, 1]) t.arms.push(model(arms, t.body, s * (HALLO ? 0.31 : 0.27), HALLO ? 0.58 : 0.53, 0));
     t.update = time => {
       t.body.position.set(1.1, 0.18 + Math.abs(Math.sin(time * 5)) * 0.23, 0);
       t.body.rotation.set(0, Math.atan2(camera.position.x - t.g.position.x - 1.1, camera.position.z - t.g.position.z), Math.sin(time * 5) * 0.15);
@@ -6211,6 +6268,13 @@ const GIFT_SURPRISES = (() => {
   // Green present: three small toy reindeer prance in a low, magical circle.
   {
     const t = toy(1, 8), k = newKit();
+    if (HALLO) { // tre små, venlige flagermus med store øjne og vinger, der basker
+      sphere(k, '#3a2a4e', 0, 0.35, 0, 0.16, 1, 1, 1.1); sphere(k, '#4a3660', 0, 0.49, 0.1, 0.12);
+      for (const sx of [-1, 1]) { part(k, 'cloth', new THREE.ConeGeometry(0.05, 0.13, 6), '#4a3660', sx * 0.07, 0.61, 0.08, 1, 1, 1, 0, 0, -sx * 0.3); sphere(k, '#ffffff', sx * 0.045, 0.51, 0.2, 0.032); sphere(k, '#1a1020', sx * 0.045, 0.51, 0.226, 0.015); }
+      sphere(k, '#ffb0c8', 0, 0.45, 0.2, 0.022);
+      const body = finish(k), wing = newKit(); sphere(wing, '#5a3a7a', 0.2, 0, 0, 0.2, 1.2, 0.14, 0.75); const wings = finish(wing);
+      for (let i = 0; i < 3; i++) { const d = model(body, t.g); d.userData.legs = []; for (const sx of [1, -1]) { const w = model(wings, d, sx * 0.1, 0.38, 0); w.scale.x = sx; d.userData.legs.push(w); } t.objects.push(d); }
+    } else {
     sphere(k, '#bb8751', 0, 0.33, 0, 0.22, 0.8, 0.85, 1.45);
     sphere(k, '#bd8955', 0, 0.54, 0.26, 0.14, 0.85, 1.1, 1.05);
     sphere(k, '#f7dcac', 0, 0.5, 0.37, 0.085, 1, 0.8, 1);
@@ -6227,27 +6291,34 @@ const GIFT_SURPRISES = (() => {
     part(leg, 'cloth', new THREE.CylinderGeometry(0.026, 0.032, 0.21, 6), '#a97546', 0, -0.105, 0);
     sphere(leg, '#5c4232', 0, -0.22, 0.018, 0.042, 1, 0.7, 1.3); const legs = finish(leg);
     for (let i = 0; i < 3; i++) { const d = model(body, t.g); d.userData.legs = []; for (const x of [-0.12, 0.12]) for (const z of [-0.19, 0.19]) d.userData.legs.push(model(legs, d, x, 0.27, z)); t.objects.push(d); }
-    t.update = time => t.objects.forEach((d, i) => { const a = time * 1.6 + i * Math.PI * 2 / 3; d.position.set(Math.cos(a) * 1.2, 0.3 + Math.abs(Math.sin(time * 8 + i)) * 0.2, Math.sin(a) * 1.2); d.rotation.y = -a; d.rotation.z = Math.sin(time * 8 + i) * 0.06; d.userData.legs.forEach((l, j) => l.rotation.x = Math.sin(time * 8 + i + (j % 3 ? Math.PI : 0)) * 0.55); });
+    }
+    if (HALLO) t.update = time => t.objects.forEach((d, i) => { const a = time * 1.6 + i * Math.PI * 2 / 3; d.position.set(Math.cos(a) * 1.2, 0.9 + Math.sin(time * 3 + i) * 0.25, Math.sin(a) * 1.2); d.rotation.y = -a; d.userData.legs.forEach((l, j) => l.rotation.z = (j ? -1 : 1) * Math.sin(time * 14 + i) * 0.7); });
+    else t.update = time => t.objects.forEach((d, i) => { const a = time * 1.6 + i * Math.PI * 2 / 3; d.position.set(Math.cos(a) * 1.2, 0.3 + Math.abs(Math.sin(time * 8 + i)) * 0.2, Math.sin(a) * 1.2); d.rotation.y = -a; d.rotation.z = Math.sin(time * 8 + i) * 0.06; d.userData.legs.forEach((l, j) => l.rotation.x = Math.sin(time * 8 + i + (j % 3 ? Math.PI : 0)) * 0.55); });
   }
 
   // Blue present: a little rainbow opens above the hat and drops colorful snowflakes.
   {
     const t = toy(2, 7); t.arch = node(t.g, 0, 1.85, 0);
     for (let i = 0; i < 5; i++) { const a = new THREE.Mesh(new THREE.TorusGeometry(1.16 + i * 0.075, 0.03, 5, 40, Math.PI), glow[i]); t.arch.add(a); }
-    const k = newKit(); for (let i = 0; i < 3; i++) part(k, 'cloth', new THREE.BoxGeometry(0.035, 0.36, 0.035), '#ffffff', 0, 0, 0, 1, 1, 1, 0, 0, i * Math.PI / 3); const snow = finish(k);
-    for (let i = 0; i < 12; i++) { const f = model(snow, t.g); const c = star(f, glow[i % 5], 0.37); c.position.z = 0.03; t.objects.push(f); }
+    if (HALLO) { const cg = SG(0.12, 12, 8), eg = new THREE.ConeGeometry(0.08, 0.14, 8); // bolsjer i papir, der drysser ned
+      for (let i = 0; i < 12; i++) { const f = node(t.g), m = glow[i % 5]; const c = new THREE.Mesh(cg, m); c.scale.set(1.3, 1, 1); f.add(c); for (const sx of [-1, 1]) { const e = new THREE.Mesh(eg, m); e.position.x = sx * 0.2; e.rotation.z = sx * Math.PI / 2; f.add(e); } t.objects.push(f); } }
+    else { const k = newKit(); for (let i = 0; i < 3; i++) part(k, 'cloth', new THREE.BoxGeometry(0.035, 0.36, 0.035), '#ffffff', 0, 0, 0, 1, 1, 1, 0, 0, i * Math.PI / 3); const snow = finish(k);
+    for (let i = 0; i < 12; i++) { const f = model(snow, t.g); const c = star(f, glow[i % 5], 0.37); c.position.z = 0.03; t.objects.push(f); } }
     t.update = time => { t.arch.quaternion.copy(camera.quaternion); t.arch.rotation.z += Math.sin(time * 2) * 0.055; t.objects.forEach((f, i) => { const a = i * 2.399 + time * 0.25, fall = (time * 0.4 + i / 12) % 1; f.position.set(Math.cos(a) * 1.25, 2.85 - fall * 2.4, Math.sin(a) * 0.8); f.quaternion.copy(camera.quaternion); f.rotation.z += time * 1.1 + i; f.scale.setScalar(0.55 + Math.sin(fall * Math.PI) * 0.45); }); };
   }
 
   // White present: three friendly bells swing and bob like a tiny marching band.
   {
     const t = toy(3, 7), k = newKit();
+    if (HALLO) { for (let i = 0; i < 3; i++) { const o = node(t.g); pumpkinLantern(o, 0, -0.22, 0, 0.24, 0); t.objects.push(o); } } // tre små græskar, der danser
+    else {
     part(k, 'gloss', new THREE.CylinderGeometry(0.075, 0.21, 0.3, 16), '#ffda65', 0, -0.12, 0);
     part(k, 'gloss', new THREE.TorusGeometry(0.2, 0.035, 6, 18), '#ffec9d', 0, -0.275, 0, 1, 1, 1, Math.PI / 2);
     part(k, 'cloth', new THREE.TorusGeometry(0.06, 0.018, 6, 14), '#f46b7b', 0, 0.08, 0);
     sphere(k, '#bf8232', 0, -0.305, 0, 0.055);
     for (const s of [-1, 1]) sphere(k, '#eb4560', s * 0.1, 0.03, 0.01, 0.07, 1.3, 0.7, 0.65);
     const bell = finish(k); for (let i = 0; i < 3; i++) t.objects.push(model(bell, t.g));
+    }
     for (let i = 0; i < 6; i++) { const s = star(t.g, glow[i % 5], 0.38); s.userData.note = true; t.objects.push(s); }
     t.update = time => t.objects.forEach((o, i) => { if (i < 3) { const a = time * 0.75 + i * Math.PI * 2 / 3; o.position.set(Math.cos(a) * 0.95, 1.85 + Math.abs(Math.sin(time * 4 + i)) * 0.35, Math.sin(a) * 0.95); o.rotation.set(Math.sin(time * 6 + i) * 0.35, -a, Math.sin(time * 6 + i) * 0.3); } else { const a = i * 1.05 + time; o.position.set(Math.cos(a) * 1.35, 1.6 + (Math.sin(time * 2 + i) + 1) * 0.6, Math.sin(a) * 1.35); o.quaternion.copy(camera.quaternion); o.rotation.z += time * 1.5; } });
   }
@@ -6899,7 +6970,7 @@ const SKATE = (() => {
 // kælkene, kælkeliften og de gaver, man mangler. Ting uden for kortet sidder på kanten, så man kan se, hvilken vej de ligger.
 const MINIMAP = (() => {
   const st = document.createElement('style');
-  st.textContent = `#miniMap{position:absolute;right:16px;bottom:16px;width:172px;height:172px;border-radius:50%;border:3px solid rgba(255,210,74,.85);box-shadow:0 6px 18px rgba(0,0,10,.35);background:#9aa6c2}
+  st.textContent = `#miniMap{position:absolute;right:16px;bottom:16px;width:172px;height:172px;border-radius:50%;border:3px solid ${HALLO ? 'rgba(255,150,50,.9)' : 'rgba(255,210,74,.85)'};box-shadow:0 6px 18px rgba(0,0,10,.35);background:${HALLO ? '#5a4a60' : '#9aa6c2'}}
   @media (max-width:700px),(max-height:560px){#miniMap{width:120px;height:120px;right:10px;bottom:10px}}
   @media (pointer:coarse){#miniMap{bottom:auto;top:132px;right:12px;width:112px;height:112px}}
   @media (min-width:1600px) and (min-height:860px){#miniMap{width:214px;height:214px;right:24px;bottom:24px}}`;
@@ -6919,7 +6990,8 @@ const MINIMAP = (() => {
       const hx = (H[j * N + Math.min(N - 1, i + 1)] - H[j * N + Math.max(0, i - 1)]) / 4, hz = (H[Math.min(N - 1, j + 1) * N + i] - H[Math.max(0, j - 1) * N + i]) / 4;
       const sh = clamp(0.55 - (hx + hz) * 0.8, 0, 1);
       let r = 214 + 34 * sh, gg = 224 + 28 * sh, b = 242 + 13 * sh;
-      const e = smoothstep(92, 104, Math.hypot(x, z)); r = lerp(r, 150, e); gg = lerp(gg, 160, e); b = lerp(b, 190, e);
+      if (HALLO) { r = 150 + 52 * sh; gg = 96 + 36 * sh; b = 58 + 22 * sh; } // Halloween: efterårsblade i stedet for sne
+      const e = smoothstep(92, 104, Math.hypot(x, z)); r = lerp(r, HALLO ? 84 : 150, e); gg = lerp(gg, HALLO ? 64 : 160, e); b = lerp(b, HALLO ? 72 : 190, e);
       const lf = lakeF(x, z); if (lf < 1.05 && h < LAKE.level + 0.2) { const k = smoothstep(1.05, 0.95, lf); r = lerp(r, 170, k); gg = lerp(gg, 222, k); b = lerp(b, 238, k); }
       const o = (j * N + i) * 4; img.data[o] = r; img.data[o + 1] = gg; img.data[o + 2] = b; img.data[o + 3] = 255;
     }
@@ -6928,7 +7000,7 @@ const MINIMAP = (() => {
     const U = (x) => (x - W0) * PPM;
     const line = (pts, w, col, dash) => { g.beginPath(); pts.forEach(([x, z], k) => k ? g.lineTo(U(x), U(z)) : g.moveTo(U(x), U(z))); g.lineWidth = w * PPM; g.strokeStyle = col; g.setLineDash(dash ? dash.map(d => d * PPM) : []); g.stroke(); };
     g.lineCap = g.lineJoin = 'round';
-    line(PATH, 3, 'rgba(206,186,156,.95)');                       // stien fra byen til tårnet
+    line(PATH, 3, HALLO ? 'rgba(238,216,172,.95)' : 'rgba(206,186,156,.95)'); // stien fra byen til tårnet
     const cp = SLED.pts.map(p => [p.x, p.z]); line(cp, 4.4, '#79aed4'); line(cp, 3, '#c4e9fb'); // Kælkebakken
     if (KAELK.liftPts) { line(KAELK.liftPts, 1.8, '#ffffff'); line(KAELK.liftPts, 1.8, '#c8102e', [1.4, 1.4]); } // kælkeliften
     g.setLineDash([]);
@@ -6941,6 +7013,12 @@ const MINIMAP = (() => {
   const OUT = 'rgba(40,16,10,.85)';
   const ico = {
     gift(s, col) {
+      if (HALLO) { // slikpose med bånd
+        ctx.lineWidth = 1.3; ctx.strokeStyle = OUT; ctx.fillStyle = col;
+        ctx.beginPath(); ctx.moveTo(-s * 0.3, -s * 0.12); ctx.quadraticCurveTo(-s * 0.56, s * 0.48, 0, s * 0.48); ctx.quadraticCurveTo(s * 0.56, s * 0.48, s * 0.3, -s * 0.12); ctx.quadraticCurveTo(0, -s * 0.22, -s * 0.3, -s * 0.12); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-s * 0.2, -s * 0.24); ctx.quadraticCurveTo(0, -s * 0.66, s * 0.2, -s * 0.24); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#7a3ab0'; ctx.fillRect(-s * 0.19, -s * 0.27, s * 0.38, s * 0.11); return;
+      }
       ctx.lineWidth = 1.3; ctx.strokeStyle = OUT; ctx.fillStyle = col;
       rrect(-s * 0.42, -s * 0.12, s * 0.84, s * 0.58, s * 0.06); ctx.fill(); ctx.stroke();
       rrect(-s * 0.5, -s * 0.36, s * 1.0, s * 0.26, s * 0.05); ctx.fill(); ctx.stroke();
@@ -6958,17 +7036,26 @@ const MINIMAP = (() => {
       ctx.beginPath(); ctx.moveTo(-s * 0.34, s * 0.5); ctx.lineTo(s * 0.34, s * 0.5); ctx.lineTo(s * 0.26, -s * 0.12); ctx.lineTo(-s * 0.26, -s * 0.12); ctx.closePath(); ctx.fill(); ctx.stroke();
       ctx.fillRect(-s * 0.32, -s * 0.24, s * 0.64, s * 0.14); ctx.strokeRect(-s * 0.32, -s * 0.24, s * 0.64, s * 0.14);
       ctx.fillStyle = '#5a3d28'; rrect(-s * 0.08, s * 0.22, s * 0.16, s * 0.28, s * 0.06); ctx.fill();
-      ico.star(0, -s * 0.52, s * 0.3, glow);
+      if (HALLO) ico.pumpkin(0, -s * 0.5, s * 0.3, glow); else ico.star(0, -s * 0.52, s * 0.3, glow);
     },
     star(x, y, r, glow) {
       ctx.save(); ctx.translate(x, y); if (glow) { ctx.shadowColor = 'rgba(255,200,60,.95)'; ctx.shadowBlur = 8; }
       ctx.beginPath(); for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, rr0 = k % 2 ? r * 0.45 : r; ctx.lineTo(Math.cos(a) * rr0, Math.sin(a) * rr0); } ctx.closePath();
       ctx.fillStyle = '#ffd24a'; ctx.fill(); ctx.shadowBlur = 0; ctx.lineWidth = 1; ctx.strokeStyle = '#8a5a00'; ctx.stroke(); ctx.restore();
     },
+    // Halloween: græskarlygten på tårnet
+    pumpkin(x, y, r, glow) {
+      ctx.save(); ctx.translate(x, y); if (glow) { ctx.shadowColor = 'rgba(255,140,40,.95)'; ctx.shadowBlur = 8; }
+      ctx.fillStyle = '#f07a1a'; ctx.beginPath(); ctx.ellipse(0, 0, r, r * 0.8, 0, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; ctx.lineWidth = 1; ctx.strokeStyle = '#7a3500'; ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(0, 0, r * 0.4, r * 0.8, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = '#5a7a2a'; ctx.fillRect(-r * 0.12, -r * 1.12, r * 0.24, r * 0.36);
+      ctx.fillStyle = '#ffe27a'; for (const sx of [-1, 1]) { ctx.beginPath(); ctx.moveTo(sx * r * 0.35, -r * 0.35); ctx.lineTo(sx * r * 0.55, -r * 0.05); ctx.lineTo(sx * r * 0.15, -r * 0.05); ctx.closePath(); ctx.fill(); }
+      ctx.beginPath(); ctx.moveTo(-r * 0.55, r * 0.15); ctx.quadraticCurveTo(0, r * 0.75, r * 0.55, r * 0.15); ctx.quadraticCurveTo(0, r * 0.4, -r * 0.55, r * 0.15); ctx.fill(); ctx.restore();
+    },
     house(s) {
       ctx.lineWidth = 1.3; ctx.strokeStyle = OUT; ctx.fillStyle = '#b8332b';
       ctx.fillRect(-s * 0.36, -s * 0.06, s * 0.72, s * 0.52); ctx.strokeRect(-s * 0.36, -s * 0.06, s * 0.72, s * 0.52);
-      ctx.fillStyle = '#f4f7ff'; ctx.beginPath(); ctx.moveTo(-s * 0.52, 0); ctx.lineTo(0, -s * 0.48); ctx.lineTo(s * 0.52, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = HALLO ? '#b08a48' : '#f4f7ff'; ctx.beginPath(); ctx.moveTo(-s * 0.52, 0); ctx.lineTo(0, -s * 0.48); ctx.lineTo(s * 0.52, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
       ctx.fillStyle = '#ffd24a'; ctx.fillRect(-s * 0.1, s * 0.1, s * 0.2, s * 0.18);
     },
     tree(s) {
@@ -6984,7 +7071,7 @@ const MINIMAP = (() => {
     },
   };
   const _o = { x: 0, y: 0, d: 0, rim: false };
-  const GIFT_COL = ['#c8102e', '#1f7a3a', '#2556a8', '#e8e2d6', '#e0a820'];
+  const GIFT_COL = HALLO ? HALLO_BAG_COL : ['#c8102e', '#1f7a3a', '#2556a8', '#e8e2d6', '#e0a820'];
   HOOKS.render.push((dt, t) => {
     const gs = GAME.state; if (gs !== 'play' && gs !== 'pause' && gs !== 'win') return;
     const size = cv.clientWidth; if (!size) return;
@@ -6992,7 +7079,7 @@ const MINIMAP = (() => {
     if (!bg) bg = buildBg();
     const R = size / 2, sc = R / VIEW, yaw = CAM.yaw, fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
     const p0x = P.pos.x, p0z = P.pos.z, k = sc / PPM;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, size, size); ctx.fillStyle = '#9aa6c2'; ctx.fillRect(0, 0, size, size);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, size, size); ctx.fillStyle = HALLO ? '#5a4a60' : '#9aa6c2'; ctx.fillRect(0, 0, size, size);
     ctx.setTransform(dpr * k * rx, -dpr * k * fx, dpr * k * rz, -dpr * k * fz, dpr * (R + sc * (rx * (W0 - p0x) + rz * (W0 - p0z))), dpr * (R - sc * (fx * (W0 - p0x) + fz * (W0 - p0z))));
     ctx.imageSmoothingEnabled = true; ctx.drawImage(bg, 0, 0);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -7003,7 +7090,7 @@ const MINIMAP = (() => {
       return _o;
     };
     const draw = (x, z, rim, fn, scale = 1, ...a) => { const o = at(x, z, rim); if (!o) return; ctx.save(); ctx.translate(o.x, o.y); const q = (o.rim ? 0.8 : 1) * scale; ctx.scale(q, q); ctx.globalAlpha = o.rim ? 0.92 : 1; ctx.shadowColor = 'rgba(0,0,20,.45)'; ctx.shadowBlur = 3; ctx.shadowOffsetY = 1; fn(s, ...a); ctx.restore(); };
-    // tårnet med julestjernen (lyser, når alle gaver er fundet)
+    // tårnet med julestjernen eller græskarlygten (lyser, når alle gaver er fundet)
     draw(0, 0, true, ico.tower, 1.15, GAME.gifts >= 5);
     // byen: husene, eller ét hus på kanten når byen er langt væk
     const HS = window.HOUSES || [];
