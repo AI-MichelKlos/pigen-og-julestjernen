@@ -15,7 +15,7 @@ En Halloween-tvilling til "Pigen og Julestjernen" i samme spil, så man kan væl
 ## Plan
 
 - [x] 1. Fundament: et tema-valg i koden (?tema=halloween), himmel, lys og tåge i orange og lilla med fuldmåne, ny musik. Titlen er "Pigen og Græskarlygten".
-- [ ] 2. Jorden og naturen: efterårsblade på jorden i stedet for sne, ingen sne på træer og tage (eventuelt lidt rimfrost), faldende blade i stedet for snefnug, frost på søen og kælkebakken.
+- [x] 2. Jorden og naturen: efterårsblade på jorden i stedet for sne, ingen sne på træer og tage (eventuelt lidt rimfrost), faldende blade i stedet for snefnug, frost på søen og kælkebakken.
 - [ ] 3. Lys og pynt: orange og lilla lyskæder, græskarlygter langs stien og ved husene, spindelvæv og anden pynt i stedet for julepynt.
 - [ ] 4. Gaver og mål: de fem gaver bliver til noget halloween-agtigt (for eksempel slikposer eller græskar), julekuglerne bliver til noget andet at samle, julestjernen på tårnet bliver til en stor, smilende græskarlygte, og ikonerne øverst og på minikortet følger med.
 - [ ] 5. Figurer: heksehatte på rævene og bæverne, nissevennen bliver til et lille venligt spøgelse, nisserne i byen bliver udklædte, julemandens kane bliver til en heks på kost, og hoppesnemændene bliver til hoppegræskar.
@@ -40,8 +40,28 @@ Mangler (kommer i de næste skridt):
 - Startteksten lover heksehat, spøgelsesven, slikposer og hoppegræskar. Pigen bør derfor få en heksehat i stedet for nissehuen i skridt 5. Tjek teksten igen i skridt 7.
 - Idé til skridt 3 eller 5: flagermus, der flyver hen over månen.
 
+### Skridt 2 (jorden og naturen) - færdigt 2. oktober 2026
+
+Lavet:
+- Efterårsblade: `makeLeafTex()` tegner en sømløs tekstur med bøg, ahorn og eg (TEXTURES & MATERIALS). `leafify()` lægger bladene på efter verdenspositionen, så de har samme størrelse på alle ting, og tilføjer rimfrost med glimmer. Terrænet (`buildTerrain`) får bladfarver, jord på stierne, grå sten på skrænterne og mudder ved søen. Attributten `aHal` styrer pr. hjørne, hvor tæt bladene ligger (x) og hvor meget rimfrost der er (y).
+- Materialer (lige efter `M.snow`): `M.snowJul` er altid den oprindelige sne. I Halloween er `M.snow` blade (bunker ved fødderne af ting, puder på kasser, stubbe og platforme), `M.frost` tynd rimfrost (tårnets kanter, vindueskarme, skorstene, skilte, lygter), `M.thatch` stråtag på husenes tage, og `M.snowFig` hvid sne til snemænd, hoppesnemænd, snebolde og "Byg en snemand". I jul peger alle fire på det samme sne-materiale.
+- Træer (`makeFirGeometry`): ingen sne. Sne-puderne er blevet lysere grønne grene med lidt rimfrost øverst. De runde træer (`round`) har fået efterårsløv i orange, rød, gul og brun (`AUT`). Buskene ved verdens kant er røde og orange.
+- Istapperne på husene er skjult i Halloween (`visible = !HALLO`).
+- Faldende blade i stedet for sne (`snowfall`, `LEAF_VS`/`LEAF_FS`): hvert fjerde punkt er et blad, der falder langsomt, svajer og vender sig.
+- Hop og landinger hvirvler blade og lidt jordstøv op (`leafPuff`, `leafBits`). Fodsporene er brune.
+- Den første frostnat: rimfrost på bakken øst og vest for tårnet, hvor man kælker, og ved søens bred. Søen er stadig is, og kælkebanen har stadig is i bunden og hvide frostkanter.
+- Lyset er gjort lidt varmere: lysere måneskin og et brunt genskin fra bladene (`hemi`), så bladene ser orange ud i stedet for lilla.
+
+Mangler (kommer i de næste skridt):
+- Snemænd, hoppesnemænd, snebolde og "Byg en snemand" er stadig hvide (skridt 5 og 6).
+- Isklods-søjlerne ved tårnet og kælkebanens hvide kanter er beholdt (de passer til frostnatten). Kan ændres, hvis de virker for vinteragtige.
+
 Afprøvning (se mappen `test/`):
 - `bash test/prep.sh` laver `test/game.html` med three.js fra npm. Start en server i `test/` med `python3 -m http.server 8123 --bind 127.0.0.1`.
 - `node test/shot.mjs game.html "?test&tema=halloween" billede.png [script.js]` tager et billede. Hvert billede tager 1 til 2 minutter.
 - `test/fingerprint.js` måler verden og udseende. Lav en kopi af den gamle udgave med `git show HEAD:index.html > /tmp/gammel.html && bash test/prep.sh /tmp/gammel.html orig.html`, og kør scriptet på den gamle og den nye juleudgave (`?test`), én ad gangen: alle felter skal være ens. Halloween skal have samme `geo` som jul (så er landskabet uændret). Efter skridt 1 var juleudgaven helt ens med før.
 - `test/titlecam.js` viser titelkameraet ved et fast tidspunkt, og `test/play.js` afprøver musikken.
+- `test/world.js` måler landskabet (kasser man kan stå på, træer, terræn, mønter, gaver, kasser og julekugler). Det skal være ens i jul og Halloween og ens før og efter en ændring. Kør fx `node test/shot.mjs game.html "?test" none fingerprint.js,world.js` (flere scripts adskilt af komma).
+- Flere billeder i én omgang: `VIEWS='[{"p":[0,9,44],"l":[0,3,68]}]' node test/shot.mjs game.html "?test&tema=halloween" billede.png vent.js` giver `billede_0.png` osv. (p = kameraets plads, l = hvor det kigger hen). Gode steder: byen (0,9,44)->(0,3,68), kælkebakken mod øst (36,15,10)->(8,9,0), søen (-28,9,-8)->(-58,0,-30), tårnet (14,31,17)->(0,26,0).
+- `test/land.js` lander pigen og tæller bladene, der hvirvler op.
+- Efter skridt 2 var juleudgaven helt ens med før, og landskabet i Halloween var ens med julens.

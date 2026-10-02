@@ -17,12 +17,22 @@ const t0 = Date.now();
 await page.goto(`http://127.0.0.1:8123/${page0}${query}`, { waitUntil: 'load', timeout: 180000 });
 await page.waitForFunction(() => window.__G || document.querySelector('#startBtn:not([disabled])'), null, { timeout: 300000 });
 console.log('loaded in', ((Date.now() - t0) / 1000).toFixed(1), 's');
-if (scriptFile) {
-  const body = fs.readFileSync(scriptFile, 'utf8');
+if (scriptFile) for (const sf of scriptFile.split(',')) { // flere scripts adskilt af komma køres efter hinanden
+  const body = fs.readFileSync(sf, 'utf8');
   const res = await page.evaluate(new Function('return (async () => {' + body + '})()'));
   if (res !== undefined) console.log('script:', JSON.stringify(res));
 }
-if (out !== "none") await page.screenshot({ path: out, timeout: 300000 });
+// VIEWS='[{"p":[x,y,z],"l":[x,y,z]}, ...]' tager ét billede pr. kameravinkel (out_0.png, out_1.png, ...) i samme browser
+if (process.env.VIEWS && out !== 'none') {
+  const views = JSON.parse(process.env.VIEWS);
+  await page.evaluate(() => { window.__view = null; window.__G.HOOKS.render.push(() => { const v = window.__view; if (v && v.p) { window.__G.camera.position.set(...v.p); window.__G.camera.lookAt(...v.l); } }); });
+  for (let i = 0; i < views.length; i++) {
+    await page.evaluate((v) => { window.__view = v; if (v.player) { const P = window.__G.P; P.pos.set(...v.player); P.prev.copy(P.pos); P.vel.set(0, 0, 0); } }, views[i]);
+    await page.waitForTimeout(views[i].wait ?? 4000);
+    await page.screenshot({ path: out.replace(/\.png$/, `_${i}.png`), timeout: 300000 });
+    console.log('view', i, ((Date.now() - t0) / 1000).toFixed(1), 's');
+  }
+} else if (out !== "none") await page.screenshot({ path: out, timeout: 300000 });
 console.log('shot in', ((Date.now() - t0) / 1000).toFixed(1), 's');
 for (const l of logs.slice(0, 20)) console.log(l);
 await browser.close();
