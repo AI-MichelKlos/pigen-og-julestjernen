@@ -4947,7 +4947,7 @@ HOOKS.render.push((dt) => {
     // kælkene på bakkerne glimter lidt, så de er lette at få øje på
     for (const h of HILLS) if (h.mesh.visible && (h.tw -= dt) <= 0) { h.tw = 1.2; if (camera.position.distanceTo(h.mesh.position) < 45) sparkleBurst(h.x, h.y + 0.45, h.z, 4, 1, 0.85, 0.45, 1.2); }
   });
-  KAELK.lift = L; KAELK.hills = HILLS; KAELK.liftLen = LEN; // til test
+  KAELK.lift = L; KAELK.hills = HILLS; KAELK.liftLen = LEN; KAELK.liftPts = X.map((x, i) => [x, Z[i]]).filter((_, i) => i % 4 === 0 || i === NS); // liftPts: til minikortet
 }
 
 if (AUDIT) { const t0 = performance.now(); window.__AUDIT = runAudit(); console.log('audit ms', Math.round(performance.now() - t0), 'items', window.__AUDIT.length); }
@@ -6542,6 +6542,137 @@ const SKATE = (() => {
   return Object.assign(S, { push });
 })();
 
+// ═════════════════════════ SECTION: MINIKORT ═════════════════════════
+// Et lille rundt kort nederst i højre hjørne. Det drejer med kameraet, så "op" på kortet altid er der, hvor pil op går hen.
+// Kun billeder, ingen tekst (til de mindste): pigen i midten med en lille pil, tårnet med julestjernen, husene, det store juletræ,
+// kælkene, kælkeliften og de gaver, man mangler. Ting uden for kortet sidder på kanten, så man kan se, hvilken vej de ligger.
+const MINIMAP = (() => {
+  const st = document.createElement('style');
+  st.textContent = `#miniMap{position:absolute;right:16px;bottom:16px;width:172px;height:172px;border-radius:50%;border:3px solid rgba(255,210,74,.85);box-shadow:0 6px 18px rgba(0,0,10,.35);background:#9aa6c2}
+  @media (max-width:700px),(max-height:560px){#miniMap{width:120px;height:120px;right:10px;bottom:10px}}
+  @media (pointer:coarse){#miniMap{bottom:auto;top:132px;right:12px;width:112px;height:112px}}
+  @media (min-width:1600px) and (min-height:860px){#miniMap{width:214px;height:214px;right:24px;bottom:24px}}`;
+  document.head.appendChild(st);
+  const cv = document.createElement('canvas'); cv.id = 'miniMap'; $('hud').appendChild(cv);
+  const ctx = cv.getContext('2d');
+  const VIEW = 42;                       // meter fra midten af kortet til kanten
+  const W0 = -110, WS = 220, PPM = 3;    // baggrunden dækker hele verden, 3 px pr. meter
+  let bg = null;
+  // ── baggrunden tegnes én gang: sne med lidt skygge, søen, stien, Kælkebakken, liften og træerne
+  const buildBg = () => {
+    const c = document.createElement('canvas'); c.width = c.height = WS * PPM; const g = c.getContext('2d');
+    const N = WS / 2 + 1, H = new Float32Array(N * N), img = new ImageData(N, N);
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) H[j * N + i] = terrainH(W0 + i * 2, W0 + j * 2);
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+      const x = W0 + i * 2, z = W0 + j * 2, h = H[j * N + i];
+      const hx = (H[j * N + Math.min(N - 1, i + 1)] - H[j * N + Math.max(0, i - 1)]) / 4, hz = (H[Math.min(N - 1, j + 1) * N + i] - H[Math.max(0, j - 1) * N + i]) / 4;
+      const sh = clamp(0.55 - (hx + hz) * 0.8, 0, 1);
+      let r = 214 + 34 * sh, gg = 224 + 28 * sh, b = 242 + 13 * sh;
+      const e = smoothstep(92, 104, Math.hypot(x, z)); r = lerp(r, 150, e); gg = lerp(gg, 160, e); b = lerp(b, 190, e);
+      const lf = lakeF(x, z); if (lf < 1.05 && h < LAKE.level + 0.2) { const k = smoothstep(1.05, 0.95, lf); r = lerp(r, 170, k); gg = lerp(gg, 222, k); b = lerp(b, 238, k); }
+      const o = (j * N + i) * 4; img.data[o] = r; img.data[o + 1] = gg; img.data[o + 2] = b; img.data[o + 3] = 255;
+    }
+    const tc = document.createElement('canvas'); tc.width = tc.height = N; tc.getContext('2d').putImageData(img, 0, 0);
+    g.imageSmoothingEnabled = true; g.drawImage(tc, -PPM, -PPM, N * 2 * PPM, N * 2 * PPM);
+    const U = (x) => (x - W0) * PPM;
+    const line = (pts, w, col, dash) => { g.beginPath(); pts.forEach(([x, z], k) => k ? g.lineTo(U(x), U(z)) : g.moveTo(U(x), U(z))); g.lineWidth = w * PPM; g.strokeStyle = col; g.setLineDash(dash ? dash.map(d => d * PPM) : []); g.stroke(); };
+    g.lineCap = g.lineJoin = 'round';
+    line(PATH, 3, 'rgba(206,186,156,.95)');                       // stien fra byen til tårnet
+    const cp = SLED.pts.map(p => [p.x, p.z]); line(cp, 4.4, '#79aed4'); line(cp, 3, '#c4e9fb'); // Kælkebakken
+    if (KAELK.liftPts) { line(KAELK.liftPts, 1.8, '#ffffff'); line(KAELK.liftPts, 1.8, '#c8102e', [1.4, 1.4]); } // kælkeliften
+    g.setLineDash([]);
+    for (const t of TREES) if (!t.cut && Math.hypot(t.x, t.z) < 108) { g.beginPath(); g.arc(U(t.x), U(t.z), 1.25 * t.sc * PPM, 0, Math.PI * 2); g.fillStyle = '#3b7a55'; g.fill(); }
+    return c;
+  };
+  setTimeout(() => { if (!bg) bg = buildBg(); }, 1200); // tegnes mens startskærmen vises
+  // ── små billeder
+  const rrect = (x, y, w, h, r) => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); };
+  const OUT = 'rgba(40,16,10,.85)';
+  const ico = {
+    gift(s, col) {
+      ctx.lineWidth = 1.3; ctx.strokeStyle = OUT; ctx.fillStyle = col;
+      rrect(-s * 0.42, -s * 0.12, s * 0.84, s * 0.58, s * 0.06); ctx.fill(); ctx.stroke();
+      rrect(-s * 0.5, -s * 0.36, s * 1.0, s * 0.26, s * 0.05); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#ffd24a'; ctx.fillRect(-s * 0.08, -s * 0.36, s * 0.16, s * 0.82);
+      for (const sx of [-1, 1]) { ctx.beginPath(); ctx.ellipse(sx * s * 0.16, -s * 0.44, s * 0.15, s * 0.1, sx * 0.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+    },
+    sled(s) {
+      ctx.lineWidth = 1.3; ctx.strokeStyle = OUT; ctx.fillStyle = '#d61f2c';
+      rrect(-s * 0.5, -s * 0.32, s * 0.95, s * 0.36, s * 0.08); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = '#c8a040'; ctx.lineWidth = Math.max(1.6, s * 0.12); ctx.beginPath(); ctx.moveTo(-s * 0.55, s * 0.24); ctx.lineTo(s * 0.32, s * 0.24); ctx.quadraticCurveTo(s * 0.6, s * 0.24, s * 0.55, -s * 0.12); ctx.stroke();
+      ctx.lineWidth = Math.max(1.2, s * 0.08); ctx.beginPath(); ctx.moveTo(-s * 0.3, s * 0.04); ctx.lineTo(-s * 0.3, s * 0.24); ctx.moveTo(s * 0.2, s * 0.04); ctx.lineTo(s * 0.2, s * 0.24); ctx.stroke();
+    },
+    tower(s, glow) {
+      ctx.lineWidth = 1.3; ctx.strokeStyle = OUT; ctx.fillStyle = '#9a7a5e';
+      ctx.beginPath(); ctx.moveTo(-s * 0.34, s * 0.5); ctx.lineTo(s * 0.34, s * 0.5); ctx.lineTo(s * 0.26, -s * 0.12); ctx.lineTo(-s * 0.26, -s * 0.12); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillRect(-s * 0.32, -s * 0.24, s * 0.64, s * 0.14); ctx.strokeRect(-s * 0.32, -s * 0.24, s * 0.64, s * 0.14);
+      ctx.fillStyle = '#5a3d28'; rrect(-s * 0.08, s * 0.22, s * 0.16, s * 0.28, s * 0.06); ctx.fill();
+      ico.star(0, -s * 0.52, s * 0.3, glow);
+    },
+    star(x, y, r, glow) {
+      ctx.save(); ctx.translate(x, y); if (glow) { ctx.shadowColor = 'rgba(255,200,60,.95)'; ctx.shadowBlur = 8; }
+      ctx.beginPath(); for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, rr0 = k % 2 ? r * 0.45 : r; ctx.lineTo(Math.cos(a) * rr0, Math.sin(a) * rr0); } ctx.closePath();
+      ctx.fillStyle = '#ffd24a'; ctx.fill(); ctx.shadowBlur = 0; ctx.lineWidth = 1; ctx.strokeStyle = '#8a5a00'; ctx.stroke(); ctx.restore();
+    },
+    house(s) {
+      ctx.lineWidth = 1.3; ctx.strokeStyle = OUT; ctx.fillStyle = '#b8332b';
+      ctx.fillRect(-s * 0.36, -s * 0.06, s * 0.72, s * 0.52); ctx.strokeRect(-s * 0.36, -s * 0.06, s * 0.72, s * 0.52);
+      ctx.fillStyle = '#f4f7ff'; ctx.beginPath(); ctx.moveTo(-s * 0.52, 0); ctx.lineTo(0, -s * 0.48); ctx.lineTo(s * 0.52, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#ffd24a'; ctx.fillRect(-s * 0.1, s * 0.1, s * 0.2, s * 0.18);
+    },
+    tree(s) {
+      ctx.lineWidth = 1.2; ctx.strokeStyle = 'rgba(10,40,20,.9)'; ctx.fillStyle = '#5a3d28'; ctx.fillRect(-s * 0.07, s * 0.32, s * 0.14, s * 0.18);
+      ctx.fillStyle = '#2e8a52';
+      for (const [w, y0, y1] of [[0.5, 0.36, -0.06], [0.38, 0.08, -0.38]]) { ctx.beginPath(); ctx.moveTo(-s * w, s * y0); ctx.lineTo(0, s * y1 - s * 0.1); ctx.lineTo(s * w, s * y0); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+      ico.star(0, -s * 0.52, s * 0.17, false);
+    },
+    lift(s, t) {
+      const r = s * 0.42; ctx.lineWidth = Math.max(2, s * 0.17); ctx.strokeStyle = '#7a4a00'; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.lineWidth = Math.max(1.2, s * 0.1); ctx.strokeStyle = '#ffd24a'; ctx.stroke();
+      ctx.fillStyle = '#d61f2c'; ctx.beginPath(); ctx.moveTo(0, -r * 0.62); ctx.lineTo(r * 0.5, r * 0.18); ctx.lineTo(-r * 0.5, r * 0.18); ctx.closePath(); ctx.fill(); // lille pil op
+    },
+  };
+  const _o = { x: 0, y: 0, d: 0, rim: false };
+  const GIFT_COL = ['#c8102e', '#1f7a3a', '#2556a8', '#e8e2d6', '#e0a820'];
+  HOOKS.render.push((dt, t) => {
+    const gs = GAME.state; if (gs !== 'play' && gs !== 'pause' && gs !== 'win') return;
+    const size = cv.clientWidth; if (!size) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1), px = Math.round(size * dpr); if (cv.width !== px) { cv.width = cv.height = px; }
+    if (!bg) bg = buildBg();
+    const R = size / 2, sc = R / VIEW, yaw = CAM.yaw, fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
+    const p0x = P.pos.x, p0z = P.pos.z, k = sc / PPM;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, size, size); ctx.fillStyle = '#9aa6c2'; ctx.fillRect(0, 0, size, size);
+    ctx.setTransform(dpr * k * rx, -dpr * k * fx, dpr * k * rz, -dpr * k * fz, dpr * (R + sc * (rx * (W0 - p0x) + rz * (W0 - p0z))), dpr * (R - sc * (fx * (W0 - p0x) + fz * (W0 - p0z))));
+    ctx.imageSmoothingEnabled = true; ctx.drawImage(bg, 0, 0);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const s = clamp(R * 0.19, 10, 19), rimR = R - s * 0.62;
+    const at = (x, z, rim) => {
+      const dx = x - p0x, dz = z - p0z; _o.x = R + sc * (dx * rx + dz * rz); _o.y = R - sc * (dx * fx + dz * fz); _o.d = Math.hypot(_o.x - R, _o.y - R); _o.rim = false;
+      if (_o.d > rimR) { if (!rim) return null; const q = rimR / _o.d; _o.x = R + (_o.x - R) * q; _o.y = R + (_o.y - R) * q; _o.rim = true; }
+      return _o;
+    };
+    const draw = (x, z, rim, fn, scale = 1, ...a) => { const o = at(x, z, rim); if (!o) return; ctx.save(); ctx.translate(o.x, o.y); const q = (o.rim ? 0.8 : 1) * scale; ctx.scale(q, q); ctx.globalAlpha = o.rim ? 0.92 : 1; ctx.shadowColor = 'rgba(0,0,20,.45)'; ctx.shadowBlur = 3; ctx.shadowOffsetY = 1; fn(s, ...a); ctx.restore(); };
+    // tårnet med julestjernen (lyser, når alle gaver er fundet)
+    draw(0, 0, true, ico.tower, 1.15, GAME.gifts >= 5);
+    // byen: husene, eller ét hus på kanten når byen er langt væk
+    const HS = window.HOUSES || [];
+    if (Math.hypot(VILLAGE.x - p0x, VILLAGE.z - p0z) > VIEW * 0.9) draw(VILLAGE.x, VILLAGE.z, true, ico.house); else for (const h of HS) draw(h.center.x, h.center.z, false, ico.house, 0.9);
+    if (typeof XMAS_TREE !== 'undefined' && XMAS_TREE) draw(XMAS_TREE.center.x, XMAS_TREE.center.z, false, ico.tree, 1.05);
+    // kælkene og liften vises, når man er i nærheden (på kanten ville de rode med tårnet og gaverne)
+    if (KAELK.lift) draw(KAELK.lift.ring.x, KAELK.lift.ring.z, false, ico.lift, 1, t);
+    if (KAELK.hills) for (const h of KAELK.hills) if (h.mesh.visible) draw(h.x, h.z, false, ico.sled);
+    for (const g of gifts) if (g.alive) draw(g.pos.x, g.pos.z, true, ico.gift, 1 + 0.12 * Math.sin(t * 4 + g.idx), GIFT_COL[g.idx] || '#c8102e');
+    // pigen i midten: rød prik med en gul pil, der viser, hvilken vej hun kigger
+    const vx = Math.sin(P.facing), vz = Math.cos(P.facing), ax = vx * rx + vz * rz, ay = -(vx * fx + vz * fz);
+    ctx.save(); ctx.translate(R, R); ctx.shadowColor = 'rgba(0,0,20,.5)'; ctx.shadowBlur = 4;
+    const pr = s * 0.42, a = Math.atan2(ay, ax); ctx.rotate(a);
+    ctx.fillStyle = '#ffd24a'; ctx.strokeStyle = '#7a4a00'; ctx.lineWidth = 1.5; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(pr * 2.35, 0); ctx.lineTo(pr * 0.5, -pr * 1.0); ctx.lineTo(pr * 0.5, pr * 1.0); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, pr, 0, Math.PI * 2); ctx.fillStyle = '#d62a35'; ctx.fill(); ctx.shadowBlur = 0; ctx.lineWidth = 2; ctx.strokeStyle = '#ffffff'; ctx.stroke();
+    ctx.restore();
+  });
+  return { canvas: cv, view: VIEW };
+})();
+
 // ═════════════════════════ SECTION: MAIN LOOP ═════════════════════════
 const viking = buildGirl();
 const anim = new VikingAnim(viking);
@@ -6600,7 +6731,7 @@ function frame() {
 }
 // ready
 $('startBtn').disabled = false; $('startBtn').textContent = 'Start eventyret';
-window.__G = { KAELK, SKATE, XMAS_TREE, SNOWMAN, FRIENDS, XCARD, ADVENT, EATCAM: (typeof EATCAM !== "undefined" ? EATCAM : null), renderer, scene, camera, composer, bloom, HOOKS, P, CAM, GAME, input, keys, enemies, coins, gifts, TOWER, STAR, startGame, stepPlayer, surfaceAt, terrainH, setPause };
+window.__G = { KAELK, MINIMAP, SKATE, XMAS_TREE, SNOWMAN, FRIENDS, XCARD, ADVENT, EATCAM: (typeof EATCAM !== "undefined" ? EATCAM : null), renderer, scene, camera, composer, bloom, HOOKS, P, CAM, GAME, input, keys, enemies, coins, gifts, TOWER, STAR, startGame, stepPlayer, surfaceAt, terrainH, setPause };
 if (TEST) startGame();
 frame();
 </script>
