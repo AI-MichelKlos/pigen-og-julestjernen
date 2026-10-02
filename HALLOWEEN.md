@@ -18,7 +18,7 @@ En Halloween-tvilling til "Pigen og Julestjernen" i samme spil, så man kan væl
 - [x] 2. Jorden og naturen: efterårsblade på jorden i stedet for sne, ingen sne på træer og tage (eventuelt lidt rimfrost), faldende blade i stedet for snefnug, frost på søen og kælkebakken.
 - [x] 3. Lys og pynt: orange og lilla lyskæder, græskarlygter langs stien og ved husene, spindelvæv og anden pynt i stedet for julepynt.
 - [x] 4. Gaver og mål: de fem gaver bliver til noget halloween-agtigt (for eksempel slikposer eller græskar), julekuglerne bliver til noget andet at samle, julestjernen på tårnet bliver til en stor, smilende græskarlygte, og ikonerne øverst og på minikortet følger med.
-- [ ] 5. Figurer: heksehatte på rævene og bæverne, nissevennen bliver til et lille venligt spøgelse, nisserne i byen bliver udklædte, julemandens kane bliver til en heks på kost, og hoppesnemændene bliver til hoppegræskar.
+- [x] 5. Figurer: heksehatte på rævene og bæverne, nissevennen bliver til et lille venligt spøgelse, nisserne i byen bliver udklædte, julemandens kane bliver til en heks på kost, og hoppesnemændene bliver til hoppegræskar.
 - [ ] 6. Aktiviteter: juletræet bliver til græskarlygter, der skal tændes, snemanden bliver til en fugleskræmsel, julekalenderen bliver til "slik eller ballade" ved husene, maden passer til Halloween, og julekortet bliver til et halloweenkort.
 - [ ] 7. Lyd og tekster: gå alle tekster, beskeder, nissevennens replikker og lyde igennem, så intet nævner jul i Halloween-udgaven.
 - [ ] 8. Afslutning: knapper på startskærmen til at vælge Jul eller Halloween, samlet afprøvning af begge udgaver, og læg det live.
@@ -98,3 +98,26 @@ Afprøvning (se mappen `test/`):
 - Efter skridt 2, 3 og 4 var juleudgaven helt ens med før, og landskabet i Halloween var ens med julens.
 - I `VIEWS` kan et billede have `"js"`: kode, der køres først, fx `window.__view={p:[...],l:[...]}` ud fra en ting i spillet, eller `window.__GIFT_SURPRISE.trigger(0)` for at vise en overraskelse. `window.__GP` har `gifts`, `baubles`, `collectGift` og `winGame` til afprøvning.
 - Gode nærbilleder (med `"gy":true`, så højden regnes fra jorden): hus B's dør (10.6,2.2,80.3)->(13.8,1.4,74.4), tårnets dør (2.2,2.4,8.6)->(0,2.2,2.6), starten af kælkebakken (4,2.8,-14)->(0,2.4,-6.2).
+
+### Skridt 5 (figurer) - færdigt 2. oktober 2026
+
+Lavet:
+- Pigen (`buildGirl`, PLAYER MODEL): heksehat med bred, blød skygge, orange bånd med spænde og en lille gylden halvmåne i spidsen. Lilla kjole (`TUN`), orange kanter (`PM.fur`) og en lilla og orange bort (`TB`, `TG`). Hatten er stivere end nissehuen (`this.hat` i `VikingAnim`).
+- Rævene (`FOX_C.hat`, `FOX_GEO`): lille lilla heksehat med bred skygge og orange bånd. Ørerne stikker op gennem skyggen. Bæverne (`BV_GEO`): lille, skæv heksehat med bøjet spids oven på ørevarmerne.
+- Nissen Nis (`Friend`, `NISSE_PUMPKIN`, `PUMPKIN_FACE`, `PUMPKIN_STEM`): klædt ud som græskar med orange dragt med ribber, grøn hue med stilk og ranke, et græskaransigt på maven og en lille græskarlygte i hånden. `recolorNisse()` bytter farverne i nisse-sættet.
+- Nissen på skøjter (`SKATER`, `NISSE_BAT`): flagermus-kostume med ører, vinger der basker, orange vanter og et orange og lilla halstørklæde.
+- Nissevennen (`GUIDE`, sidst i NISSEVEN): et lille, hvidt spøgelse med bølget kant, der svæver, læner sig frem når det flyver, vinker og bærer en græskarlygte. Ringen og pilen ved næste hop er uændrede. I test: `window.__GUIDE.ghost`.
+- Julemandens kane (`SLEIGH`, AMBIENT LIFE): en venlig heks på kost med en sort kat bag sig og tre flagermus, der flyver omkring hende. Gnisterne bag kosten er orange og lilla. Kanen og rensdyrene er skjult.
+- Flagermus (`FLYBAT`, `makeFlyBat`, `flapBat`): fire flagermus flyver i ottetaller højt oppe foran fuldmånen og ses fra startskærmen.
+- Hoppesnemændene (`hoppeSnemand`): hoppegræskar, et stort græskar med lysende smil, kvistarme og en hue af grønne blade med stilk. Huen flyver op, når man hopper, som før. Kollisionen er uændret. `HD.pumpBody` er græskarkroppen uden stilk.
+
+Mangler (kommer i de næste skridt):
+- Lyde: heksen har stadig kaneklokker og "ho ho ho" (`Audio.jingle`, `Audio.hoho`). Det hører til skridt 7.
+- Tekster: "Hoppesnemand!", "Kom med nissevennen!", knappen "Nisseven: til" i pausemenuen og Nissen Nis' replikker (fx "lille juleven" og "Glædelig jul") hører til skridt 7.
+- Snemanden i byen ("Byg en snemand") med sine huer hører til skridt 6 (fugleskræmsel).
+- Sneharerne og sneboldene er beholdt, de passer til frostnatten.
+
+Afprøvning:
+- Juleudgaven var helt ens med før (`fingerprint.js`), og landskabet i Halloween var ens med julens (`world.js`).
+- Figurer, der bevæger sig, kan følges med en lille render-hook: læg fx `G.HOOKS.render.push(() => { if (window.__follow) window.__follow(); })` i det første `"js"` i `VIEWS`, og sæt `window.__follow` til en funktion, der stiller kameraet. Skøjtenissen (`window.__AMB.SKATER`) er skjult, når kameraet er langt væk, så flyt pigen ned til søen først. Heksen startes med `window.__AMB.launchSleigh()`.
+- Startskærmen med månen: `window.__T = 7.3` og `test/titlecam.js` (skjul `#start` for at se flagermusene foran månen).

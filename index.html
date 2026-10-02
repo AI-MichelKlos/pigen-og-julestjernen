@@ -1802,7 +1802,7 @@ const HD = HALLO ? (() => {
   const batGeo = (() => { const R = [[0, 0.1], [0.05, 0.17], [0.075, 0.08], [0.18, 0.13], [0.33, 0.17], [0.5, 0.1], [0.43, 0.0], [0.37, -0.05], [0.31, 0.02], [0.23, -0.06], [0.16, 0.0], [0.08, -0.11], [0, -0.16]];
     const sh = new THREE.Shape(); sh.moveTo(R[0][0], R[0][1]); for (let i = 1; i < R.length; i++) sh.lineTo(R[i][0], R[i][1]); for (let i = R.length - 2; i >= 1; i--) sh.lineTo(-R[i][0], R[i][1]); sh.closePath(); return new THREE.ShapeGeometry(sh); })();
   const batMat = new THREE.MeshBasicMaterial({ color: new THREE.Color().setRGB(0.03, 0.015, 0.05), side: THREE.DoubleSide });
-  return { pumpGeo, face, faceMat, pumpMat, webGeo, webMat, spGeo, spMat, threadMat, threadGeo, batGeo, batMat, spiders: [] };
+  return { pumpGeo, pumpBody: body, face, faceMat, pumpMat, webGeo, webMat, spGeo, spMat, threadMat, threadGeo, batGeo, batMat, spiders: [] };
 })() : null;
 // græskarlygte i parent (gruppe eller STATIC) i lokale koordinater: s = radius i meter, ry = hvilken vej ansigtet vender
 function pumpkinLantern(parent, x, y, z, s = 0.42, ry = 0) {
@@ -2997,7 +2997,8 @@ function buildGirl() {
   const felt = canvasTex(128, 128, (c, w, h) => { c.fillStyle = '#fff'; c.fillRect(0, 0, w, h); for (let i = 0; i < 900; i++) { const v = 205 + R() * 50; c.fillStyle = `rgba(${v},${v},${v},0.5)`; c.fillRect(R() * w, R() * h, 2 + R() * 3, 1 + R() * 2); } }, [3, 4]);
   const strands = canvasTex(128, 128, (c, w, h) => { c.fillStyle = '#fff'; c.fillRect(0, 0, w, h); for (let i = 0; i < 260; i++) { const x = R() * w, v = 170 + R() * 85; c.strokeStyle = `rgba(${v},${v * 0.92},${v * 0.85},0.7)`; c.lineWidth = 1 + R() * 2; c.beginPath(); c.moveTo(x, 0); c.bezierCurveTo(x + R() * 10 - 5, h * 0.33, x + R() * 10 - 5, h * 0.66, x + R() * 8 - 4, h); c.stroke(); } }, [3, 1]);
   const knit = canvasTex(64, 64, (c, w, h) => { c.fillStyle = '#fff'; c.fillRect(0, 0, w, h); for (let y = 0; y < h; y += 8) for (let x = 0; x < w; x += 8) { c.fillStyle = 'rgba(150,150,150,0.35)'; c.beginPath(); c.ellipse(x + 4, y + 4, 2.4, 4, 0.5, 0, Math.PI * 2); c.fill(); } }, [6, 6]);
-  const trimTex = canvasTex(256, 32, (c, w, h) => { c.fillStyle = '#9a1b24'; c.fillRect(0, 0, w, h); c.fillStyle = '#f4c24a'; c.fillRect(0, 0, w, 4); c.fillRect(0, h - 4, w, 4); for (let x = 0; x < w; x += 32) { c.beginPath(); c.moveTo(x, h / 2); c.lineTo(x + 16, 7); c.lineTo(x + 32, h / 2); c.lineTo(x + 16, h - 7); c.closePath(); c.fill(); c.fillStyle = '#9a1b24'; c.beginPath(); c.arc(x + 16, h / 2, 3.5, 0, Math.PI * 2); c.fill(); c.fillStyle = '#f4c24a'; } }, [8, 1]);
+  const TB = HALLO ? '#3d2360' : '#9a1b24', TG = HALLO ? '#ff9330' : '#f4c24a'; // Halloween: lilla og orange bort
+  const trimTex = canvasTex(256, 32, (c, w, h) => { c.fillStyle = TB; c.fillRect(0, 0, w, h); c.fillStyle = TG; c.fillRect(0, 0, w, 4); c.fillRect(0, h - 4, w, 4); for (let x = 0; x < w; x += 32) { c.beginPath(); c.moveTo(x, h / 2); c.lineTo(x + 16, 7); c.lineTo(x + 32, h / 2); c.lineTo(x + 16, h - 7); c.closePath(); c.fill(); c.fillStyle = TB; c.beginPath(); c.arc(x + 16, h / 2, 3.5, 0, Math.PI * 2); c.fill(); c.fillStyle = TG; } }, [8, 1]);
   const shieldTex = canvasTex(256, 256, (c, w, h) => {
     for (let i = 0; i < 8; i++) { const v = 150 + R() * 40; c.fillStyle = `rgb(${v},${v * 0.72},${v * 0.45})`; c.fillRect(i * 32, 0, 32, h); c.fillStyle = 'rgba(60,35,15,0.6)'; c.fillRect(i * 32, 0, 2, h); }
     c.save(); c.translate(w / 2, h / 2);
@@ -3008,20 +3009,22 @@ function buildGirl() {
   });
   const hornTex = canvasTex(8, 128, (c, w, h) => { const g = c.createLinearGradient(0, h, 0, 0); g.addColorStop(0, '#f6eed8'); g.addColorStop(0.55, '#eadbb6'); g.addColorStop(1, '#a8845a'); c.fillStyle = g; c.fillRect(0, 0, w, h); c.fillStyle = 'rgba(120,90,50,0.35)'; for (let i = 0; i < 6; i++) c.fillRect(0, h - 10 - i * 11, w, 2); });
   // ---- materials ----
+  const TUN = HALLO ? ['#6a35a8', '#d8b8ff'] : ['#c62643', '#ffb9c6']; // Halloween: lilla heksekjole
   const PM = {
     skin: mat('#f7c4a2', { r: 0.5, e: '#5a1c0c', ei: 0.28 }), nose: mat('#f2998a', { r: 0.38, e: '#5a1410', ei: 0.3 }), cheek: mat('#ff8e92', { r: 0.55, e: '#6a1018', ei: 0.3 }),
     eyeW: mat('#ffffff', { r: 0.18, e: '#ffffff', ei: 0.12, rim: 0.05 }), iris: mat('#3f8fe6', { r: 0.2, e: '#0e3a80', ei: 0.45, rim: 0 }), pupil: mat('#120b08', { r: 0.12, rim: 0 }),
     hl: new THREE.MeshBasicMaterial({ color: col('#ffffff') }),
     beard: mat('#784225', { sheen: 0.8, sheenColor: '#e8a86d', r: 0.78, map: strands }), brow: mat('#71442b', { sheen: 0.5, r: 0.85 }),
     mouth: mat('#4a1119', { r: 0.6, rim: 0 }), tongue: mat('#e0626c', { r: 0.45, rim: 0 }), teeth: mat('#fff8ee', { r: 0.3, rim: 0 }),
-    tunic: mat('#c62643', { sheen: 0.6, sheenColor: '#ffb9c6', r: 0.85, map: weave }), tunicD: mat('#c62643', { sheen: 0.6, sheenColor: '#ffb9c6', r: 0.85, map: weave, side: THREE.DoubleSide }),
+    tunic: mat(TUN[0], { sheen: 0.6, sheenColor: TUN[1], r: 0.85, map: weave }), tunicD: mat(TUN[0], { sheen: 0.6, sheenColor: TUN[1], r: 0.85, map: weave, side: THREE.DoubleSide }),
     trim: mat('#ffffff', { r: 0.55, map: trimTex }), gold: mat('#ffc83a', { m: 1, r: 0.25, e: '#5a3400', ei: 0.45 }), gem: mat('#e0203a', { r: 0.1, m: 0.2, e: '#700010', ei: 0.8 }),
     leather: mat('#6e4224', { r: 0.55 }), leatherD: mat('#4a2b16', { r: 0.6 }), wrap: mat('#d8c6a2', { sheen: 0.5, r: 0.9, map: weave }),
-    fur: mat('#f5f0e6', { sheen: 1, sheenColor: '#ffffff', r: 0.95 }), furC: mat('#bda383', { sheen: 1, sheenColor: '#fff0d6', r: 0.95 }),
-    hat: mat('#d9202e', { sheen: 1, sheenColor: '#ff9aa2', r: 0.72, map: felt }), metal: mat('#b3bcc6', { m: 0.9, r: 0.3 }), metalD: mat('#7d8691', { m: 0.9, r: 0.35 }),
+    fur: HALLO ? mat('#ff9330', { sheen: 1, sheenColor: '#ffd9a8', r: 0.9 }) : mat('#f5f0e6', { sheen: 1, sheenColor: '#ffffff', r: 0.95 }), furC: mat('#bda383', { sheen: 1, sheenColor: '#fff0d6', r: 0.95 }),
+    hat: HALLO ? mat('#3d2360', { sheen: 1, sheenColor: '#b98cff', r: 0.72, map: felt }) : mat('#d9202e', { sheen: 1, sheenColor: '#ff9aa2', r: 0.72, map: felt }), metal: mat('#b3bcc6', { m: 0.9, r: 0.3 }), metalD: mat('#7d8691', { m: 0.9, r: 0.35 }),
     horn: mat('#ffffff', { r: 0.38, map: hornTex }), mitten: mat('#2c7770', { sheen: 0.8, sheenColor: '#ff9aa0', r: 0.9, map: knit }), boot: mat('#6b4226', { r: 0.62 }),
     trousers: mat('#264d59', { sheen: 0.4, r: 0.9, map: weave }), wood: mat('#ffffff', { r: 0.7, map: shieldTex, rim: 0.3 }),
   };
+  if (HALLO) PM.band = mat('#ff8a1e', { sheen: 1, sheenColor: '#ffd0a0', r: 0.6 }); // heksehattens bånd
   const S = (r, w = 20, h = 16) => new THREE.SphereGeometry(r, w, h);
   const keep = (m) => { m.userData.keep = true; return m; };
   const root = new THREE.Group(); scene.add(root);
@@ -3103,14 +3106,21 @@ function buildGirl() {
   const helm = node(head, 0, 0.26, 0); helm.rotation.x = -0.12;
   // nisse hat: fur brim + long skinned floppy cone + pompom
   const hatBase = node(helm, 0, 0.22, -0.02); hatBase.rotation.x = -0.12;
-  part(VK.lumpy(new THREE.TorusGeometry(0.30, 0.075, 14, 40), 0.018, 40, 9.1), PM.fur, hatBase, 0, 0, 0).rotation.x = Math.PI / 2;
-  const hatLens = [0.2, 0.19, 0.18, 0.17, 0.16, 0.15]; const HL = hatLens.reduce((a, b) => a + b, 0);
-  const hg = VK.skinnedLathe(HL, 42, 26, (t) => (0.30 * Math.pow(1 - t, 0.95) + 0.032 * t) * (1 + 0.025 * Math.sin(t * 31)), hatLens);
+  if (HALLO) { // Halloween: heksehat med bred, blød skygge, orange bånd med spænde og en lille gylden måne i spidsen
+    hatBase.rotation.x = -0.2;
+    part(VK.lumpy(new THREE.TorusGeometry(0.385, 0.135, 10, 56), 0.01, 11, 2.3), PM.hat, hatBase, 0, 0, 0, 1, 1, 0.17).rotation.x = Math.PI / 2;
+    part(new THREE.CylinderGeometry(0.268, 0.298, 0.075, 40, 1, true), PM.band, hatBase, 0, 0.06, 0);
+    const bk = part(new RoundedBoxGeometry(0.11, 0.08, 0.025, 2, 0.01), PM.gold, hatBase, 0, 0.06, 0.288); bk.rotation.x = -0.42;
+    part(new RoundedBoxGeometry(0.06, 0.04, 0.02, 2, 0.008), PM.leatherD, bk, 0, 0, 0.008);
+  } else part(VK.lumpy(new THREE.TorusGeometry(0.30, 0.075, 14, 40), 0.018, 40, 9.1), PM.fur, hatBase, 0, 0, 0).rotation.x = Math.PI / 2;
+  const hatLens = HALLO ? [0.17, 0.16, 0.15, 0.13, 0.11, 0.1] : [0.2, 0.19, 0.18, 0.17, 0.16, 0.15]; const HL = hatLens.reduce((a, b) => a + b, 0);
+  const hg = VK.skinnedLathe(HL, 42, 26, HALLO ? (t) => (0.29 * Math.pow(1 - t, 1.2) + 0.006) * (1 + 0.02 * Math.sin(t * 23)) : (t) => (0.30 * Math.pow(1 - t, 0.95) + 0.032 * t) * (1 + 0.025 * Math.sin(t * 31)), hatLens);
   const hatMesh = new THREE.SkinnedMesh(hg, PM.hat); hatMesh.position.y = 0.02; hatMesh.castShadow = true; hatMesh.receiveShadow = true; hatMesh.frustumCulled = false; hatBase.add(hatMesh);
   const hatBones = []; { let par = hatMesh; hatLens.forEach((l, i) => { const b = new THREE.Bone(); b.position.y = i === 0 ? 0 : hatLens[i - 1]; par.add(b); hatBones.push(b); par = b; }); }
   hatMesh.updateMatrixWorld(true); hatMesh.bind(new THREE.Skeleton(hatBones));
-  [[-0.04, 0.0], [-0.3, 0.08], [-0.6, 0.15], [-0.7, 0.15], [-0.55, 0.1], [-0.4, 0.05]].forEach(([x, z], i) => hatBones[i].rotation.set(x, 0, z));
-  const pom = keep(part(VK.lumpy(S(0.105, 24, 18), 0.02, 55, 3.7), PM.fur, hatBones[5], 0, hatLens[5] + 0.03, 0));
+  (HALLO ? [[-0.02, 0.0], [-0.04, 0.02], [-0.07, 0.03], [-0.28, 0.08], [-0.5, 0.1], [-0.45, 0.05]] : [[-0.04, 0.0], [-0.3, 0.08], [-0.6, 0.15], [-0.7, 0.15], [-0.55, 0.1], [-0.4, 0.05]]).forEach(([x, z], i) => hatBones[i].rotation.set(x, 0, z));
+  const moonGeo = () => { const s = new THREE.Shape(); s.absarc(0, 0, 0.075, 1.022, Math.PI * 2 - 1.022, false); s.absarc(0.0375, 0, 0.064, Math.PI * 2 - 1.545, 1.545, true); const g = new THREE.ExtrudeGeometry(s, { depth: 0.03, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.008, bevelSegments: 2, curveSegments: 14 }); g.translate(0.01, 0, -0.015); return g; }; // lille halvmåne
+  const pom = keep(HALLO ? part(moonGeo(), PM.gold, hatBones[5], 0, hatLens[5] + 0.05, 0) : part(VK.lumpy(S(0.105, 24, 18), 0.02, 55, 3.7), PM.fur, hatBones[5], 0, hatLens[5] + 0.03, 0));
   // ---- arms ----
   const arms = [];
   for (const sx of [1, -1]) {
@@ -3265,7 +3275,7 @@ class VikingAnim {
     this.boredW = 0; this.breathT = 1.5; this.blowT = 0; this.blowing = false; this.minVy = 0; this.wasG = true; this.flourish = 0; this.accL = 0; this.roll = 0; this.wallPuffT = 0;
     this.shX = new Spring(0.22); this.shZ = new Spring(0); this.bellyS = new Spring(0); this.beardS = new Spring(0);
     this.prevP = V3(); this.prevV = V3(); this.accW = V3(); this.velW = V3(); this.first = true;
-    this.hat = new Chain(v.hatBones, v.hatLens, { K: [1500, 700, 330, 160, 85, 48], zeta: 0.3, drag: 0.7, g: 9.8 });
+    this.hat = new Chain(v.hatBones, v.hatLens, { K: HALLO ? [3000, 1700, 900, 420, 200, 100] : [1500, 700, 330, 160, 85, 48], zeta: 0.3, drag: 0.7, g: 9.8 }); // heksehatten er stivere end nissehuen
     this.braids = v.braidBones.map(b => new Chain(b, v.braidLens, { K: [420, 230, 140], zeta: 0.3, drag: 0.9, g: 9.8 }));
     this.spheres = [{ c: V3(), r: 0.37 }, { c: V3(), r: 0.5 }]; this.bSpheres = [{ c: V3(), r: 0.49 }];
     // round 2: visual yaw smoothing, side flip, reactions, look targets, foot IK
@@ -4366,7 +4376,7 @@ function eyeKit(k, sx, x, y, z, r, iris = '#4a2a10', look = 0) {
 function xEyeKit(k, sx, x, y, z, r) { for (const a of [0.785, -0.785]) kitAdd(k.gloss, new THREE.BoxGeometry(r * 1.6, r * 0.34, r * 0.3), '#1a1010', sx * x, y, z + r * 0.35, 1, 1, 1, 0, 0, a); }
 
 // ── Ræv ──
-const FOX_C = { o: '#ec7a2c', od: '#c9571c', cr: '#fdf3e2', dk: '#3a2418', nose: '#17100e', hat: '#d61f2c', furw: '#f7f4ee', sc1: '#1f8a44', sc2: '#f3efe4' };
+const FOX_C = { o: '#ec7a2c', od: '#c9571c', cr: '#fdf3e2', dk: '#3a2418', nose: '#17100e', hat: HALLO ? '#47286e' : '#d61f2c', furw: '#f7f4ee', sc1: '#1f8a44', sc2: '#f3efe4' };
 const FOX_GEO = (() => {
   const G = {};
   let k = newKit(); // body
@@ -4394,12 +4404,15 @@ const FOX_GEO = (() => {
   kitAdd(k.fur, SG(0.11), FOX_C.cr, 0, -0.08, 0.2, 0.95, 0.72, 1.25);
   kitAdd(k.gloss, SG(0.048, 12, 10), FOX_C.nose, 0, -0.045, 0.335, 1.25, 0.9, 1);
   kitAdd(k.gloss, new THREE.TorusGeometry(0.035, 0.009, 6, 12, Math.PI), FOX_C.dk, 0, -0.105, 0.3, 1, 1, 1, 0, 0, Math.PI);
-  kitAdd(k.cloth, new THREE.TorusGeometry(0.155, 0.058, 10, 24), FOX_C.furw, 0.0, 0.215, -0.03, 1, 1, 1, Math.PI / 2 - 0.15, 0, 0.2);
+  if (HALLO) { // Halloween: lille heksehat med bred skygge og orange bånd (ørerne stikker op gennem skyggen)
+    kitAdd(k.cloth, new THREE.TorusGeometry(0.2, 0.1, 8, 28).rotateX(Math.PI / 2).scale(1, 0.2, 1), FOX_C.hat, 0.0, 0.215, -0.03, 1, 1, 1, -0.15, 0, 0.2);
+    kitAdd(k.cloth, new THREE.CylinderGeometry(0.135, 0.154, 0.05, 18, 1, true).translate(0, 0.03, 0), '#ff8a1e', 0.0, 0.215, -0.03, 1, 1, 1, -0.15, 0, 0.2);
+  } else kitAdd(k.cloth, new THREE.TorusGeometry(0.155, 0.058, 10, 24), FOX_C.furw, 0.0, 0.215, -0.03, 1, 1, 1, Math.PI / 2 - 0.15, 0, 0.2);
   kitAdd(k.cloth, new THREE.CylinderGeometry(0.075, 0.15, 0.2, 18), FOX_C.hat, -0.02, 0.31, -0.045, 1, 1, 1, -0.15, 0, 0.2);
   G.head = kitDone(k);
   k = newKit(); for (const sx of [-1, 1]) eyeKit(k, sx, 0.1, 0, 0, 0.085); G.eyes = kitDone(k);
   k = newKit(); for (const sx of [-1, 1]) xEyeKit(k, sx, 0.1, 0, 0, 0.07); G.xeyes = kitDone(k);
-  k = newKit(); kitAdd(k.cloth, new THREE.ConeGeometry(0.078, 0.24, 14), FOX_C.hat, 0, 0.11, 0); kitAdd(k.cloth, SG(0.068, 12, 10), FOX_C.furw, 0, 0.24, 0); G.hatTip = kitDone(k);
+  k = newKit(); if (HALLO) kitAdd(k.cloth, new THREE.ConeGeometry(0.078, 0.28, 14), FOX_C.hat, 0, 0.13, 0); else { kitAdd(k.cloth, new THREE.ConeGeometry(0.078, 0.24, 14), FOX_C.hat, 0, 0.11, 0); kitAdd(k.cloth, SG(0.068, 12, 10), FOX_C.furw, 0, 0.24, 0); } G.hatTip = kitDone(k);
   k = newKit(); kitAdd(k.fur, new THREE.CapsuleGeometry(0.052, 0.14, 4, 8), FOX_C.dk, 0, -0.11, 0); kitAdd(k.fur, SG(0.064, 10, 8), FOX_C.dk, 0, -0.22, 0.025, 1, 0.7, 1.3); G.leg = kitDone(k);
   k = newKit(); kitAdd(k.fur, SG(0.12, 14, 10), FOX_C.o, 0, 0, -0.09, 1, 1, 1.5); kitAdd(k.fur, SG(0.17, 16, 12), FOX_C.o, 0, 0, -0.26, 1, 1, 1.35); G.tail0 = kitDone(k);
   k = newKit(); kitAdd(k.fur, SG(0.16, 16, 12), (x, y, z) => z < -0.03 ? FOX_C.cr : FOX_C.o, 0, 0, -0.08, 1, 1, 1.4); kitAdd(k.fur, SG(0.08, 10, 8), FOX_C.cr, 0, 0, -0.26); G.tail1 = kitDone(k);
@@ -4440,6 +4453,13 @@ const BV_GEO = (() => {
   for (const sx of [-1, 1]) for (let i = 0; i < 3; i++) kitAdd(k.gloss, new THREE.CylinderGeometry(0.004, 0.004, 0.12, 3), '#2a1c14', sx * 0.17, -0.06 + i * 0.025, 0.24, 1, 1, 1, 0, 0, sx * (Math.PI / 2 + (i - 1) * 0.2));
   kitAdd(k.cloth, new THREE.TorusGeometry(0.26, 0.03, 8, 26, Math.PI), BV_C.band, 0, 0.02, -0.03, 1, 1.05, 1, 0, 0, 0);
   for (const sx of [-1, 1]) { kitAdd(k.cloth, SG(0.1, 14, 10), BV_C.muff, sx * 0.265, 0.03, -0.03, 0.72, 1, 1); kitAdd(k.cloth, new THREE.TorusGeometry(0.075, 0.022, 6, 16), BV_C.band, sx * 0.29, 0.03, -0.03, 1, 1, 1, 0, Math.PI / 2, 0); }
+  if (HALLO) { // Halloween: lille, skæv heksehat med orange bånd og bøjet spids oven på ørevarmerne
+    const hat = '#47286e', hk = (g, c) => kitAdd(k.cloth, g, c, 0.02, 0.255, -0.04, 1, 1, 1, -0.12, 0, -0.2);
+    hk(new THREE.TorusGeometry(0.19, 0.095, 8, 28).rotateX(Math.PI / 2).scale(1, 0.2, 1), hat);
+    hk(new THREE.CylinderGeometry(0.075, 0.14, 0.2, 18).translate(0, 0.1, 0), hat);
+    hk(new THREE.CylinderGeometry(0.128, 0.144, 0.05, 18, 1, true).translate(0, 0.03, 0), '#ff8a1e');
+    hk(new THREE.ConeGeometry(0.076, 0.2, 14).translate(0, 0.1, 0).rotateX(-0.55).translate(0, 0.195, 0), hat);
+  }
   G.head = kitDone(k);
   k = newKit(); for (const sx of [-1, 1]) eyeKit(k, sx, 0.105, 0, 0, 0.075, '#2a1a0c'); G.eyes = kitDone(k);
   k = newKit(); for (const sx of [-1, 1]) xEyeKit(k, sx, 0.105, 0, 0, 0.065); G.xeyes = kitDone(k);
@@ -4694,10 +4714,36 @@ const NISSE_GEO = (() => {
   k = newKit(); kitAdd(k.cloth, new THREE.CapsuleGeometry(0.062, 0.18, 4, 10), NS_C.coat, 0, -0.13, 0); kitAdd(k.cloth, new THREE.TorusGeometry(0.06, 0.022, 6, 12), NS_C.white, 0, -0.24, 0, 1, 1, 1, Math.PI / 2); kitAdd(k.cloth, SG(0.07, 12, 10), NS_C.mit, 0, -0.3, 0.01); G.arm = kitDone(k);
   return G;
 })();
+// Halloween: nisserne i byen er klædt ud. Farverne i nisse-sættet byttes (som nissevennens grønne dragt), og f kan give mønstre.
+function recolorNisse(map, f = null) {
+  const pairs = map.map(([a, b]) => [new THREE.Color(a), new THREE.Color(b)]), out = {}, tmp = new THREE.Color();
+  for (const [part, set] of Object.entries(NISSE_GEO)) { out[part] = {};
+    for (const [key, geo] of Object.entries(set)) { const g = geo.clone(), c = g.attributes.color, p = g.attributes.position;
+      if (c) for (let i = 0; i < c.count; i++) for (let j = 0; j < pairs.length; j++) { const from = pairs[j][0]; if (Math.abs(c.getX(i) - from.r) < 0.004 && Math.abs(c.getY(i) - from.g) < 0.004 && Math.abs(c.getZ(i) - from.b) < 0.004) { tmp.copy(pairs[j][1]); if (f) f(part, j, p.getX(i), p.getY(i), p.getZ(i), tmp); c.setXYZ(i, tmp.r, tmp.g, tmp.b); break; } }
+      out[part][key] = g; } }
+  return out;
+}
+// Nissen Nis er klædt ud som græskar: orange dragt med ribber, grøn hue med stilk og et smilende græskaransigt på maven
+const NISSE_PUMPKIN = HALLO ? recolorNisse([[NS_C.coat, '#f07a1c'], [NS_C.coatD, '#f07a1c'], [NS_C.white, '#3f8a3a'], [NS_C.belt, '#c95a12'], [NS_C.buckle, '#c95a12'], [NS_C.hat, '#3f8a3a']], (part, j, x, y, z, c) => {
+  if (j <= 1 && part === 'body') c.lerp(new THREE.Color('#b8500c'), 0.35 + 0.35 * Math.cos(Math.atan2(x, z) * 11)); // ribber
+  if (j === 5 && (part === 'hat1' || part === 'hat2')) c.set('#6e6a26'); // stilken
+  if (j === 2 && part === 'hat2') c.set('#58a840');
+}) : null;
+const PUMPKIN_FACE = HALLO ? (() => { const k = newKit(), D = '#2a1408', tri = () => new THREE.CylinderGeometry(0.048, 0.048, 0.02, 3).rotateX(-Math.PI / 2);
+  for (const sx of [-1, 1]) kitAdd(k.gloss, tri(), D, sx * 0.085, 0.465, 0.27, 1, 1, 1, -0.245, Math.atan2(sx * 0.085, 0.27), 0);
+  kitAdd(k.gloss, new THREE.TorusGeometry(0.075, 0.017, 6, 16, Math.PI), D, 0, 0.395, 0.296, 1, 1, 0.6, -0.245, 0, Math.PI);
+  return kitDone(k); })() : null;
+const PUMPKIN_STEM = HALLO ? (() => { const k = newKit();
+  kitAdd(k.cloth, new THREE.CylinderGeometry(0.045, 0.07, 0.2, 8), '#6e6a26', 0.01, 0.32, -0.01, 1, 1, 1, 0, 0, -0.2);
+  kitAdd(k.cloth, new THREE.TorusGeometry(0.06, 0.016, 6, 14, Math.PI * 1.4), '#4f9a3a', 0.08, 0.36, 0.0, 1, 1, 1, 0, 0, -0.5);
+  kitAdd(k.cloth, SG(0.09, 12, 8), '#4f9a3a', -0.1, 0.27, 0.04, 1.2, 0.25, 0.7, 0, 0.4, 0.35);
+  return kitDone(k); })() : null;
+// Nissen på skøjter er klædt ud som flagermus: mørk lilla dragt, orange vanter, ører og vinger
+const NISSE_BAT = HALLO ? recolorNisse([[NS_C.coat, '#3b2a52'], [NS_C.coatD, '#2c1f40'], [NS_C.white, '#8c6cc0'], [NS_C.hat, '#3b2a52'], [NS_C.mit, '#ff8a1e']]) : null;
 const nisseLampMat = new THREE.SpriteMaterial({ map: glowTex, color: new THREE.Color().setRGB(1.4, 0.85, 0.35), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
 class Friend {
   constructor(x, z, facing, lines, name = 'Nissen Nis') {
-    const root = new THREE.Group(); root.scale.setScalar(1.3); scene.add(root); const G = NISSE_GEO;
+    const root = new THREE.Group(); root.scale.setScalar(1.3); scene.add(root); const G = HALLO ? NISSE_PUMPKIN : NISSE_GEO;
     const body = node(root); kitMesh(G.body, body);
     const head = node(body, 0, 1.0, 0.02); kitMesh(G.head, head);
     const eyes = node(head, 0, 0.035, 0.165); kitMesh(G.eyes, eyes, false);
@@ -4707,6 +4753,7 @@ class Friend {
     const lamp = node(arms[0], 0, -0.36, 0.05); const lg = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.13, 6), M.warmGlow); lamp.add(lg);
     const lr = new THREE.Mesh(new THREE.ConeGeometry(0.085, 0.07, 6), M.darkMetal); lr.position.y = 0.1; lamp.add(lr); const lb = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.025, 6), M.darkMetal); lb.position.y = -0.075; lamp.add(lb);
     const halo = new THREE.Sprite(nisseLampMat); halo.scale.setScalar(1.1); lamp.add(halo);
+    if (HALLO) { lg.visible = lr.visible = lb.visible = false; pumpkinLantern(lamp, 0, -0.09, 0, 0.1, 0); kitMesh(PUMPKIN_FACE, body, false); hat1.visible = false; kitMesh(PUMPKIN_STEM, head); } // Halloween: græskarlygte i hånden, ansigt på maven og en stilk i stedet for nissehuens spids
     const y = surfaceAt(x, z).h; root.position.set(x, y, z); root.rotation.y = facing;
     this.m = { root, body, head, eyes, hat1, hat2, arms, lamp, halo }; this.pos = V3(x, y, z); this.facing = facing; this.baseFacing = facing; this.lines = lines; this.name = name;
     this.t = rand() * 5; this.blinkT = 2; this.talk = -1; this.line = 0; this.chars = 0; this.near = false; this.lineT = 0; this.hop = 0; this.hopV = 0; this.tip = new Spring1(0); this.tipZ = new Spring1(0);
@@ -5049,8 +5096,12 @@ function hoppeSnemand(x, z, rotY = 0) {
   const y = terrainH(x, z); const root = new THREE.Group(); root.position.set(x, y - 0.05, z); root.rotation.y = rotY; scene.add(root);
   const body = new THREE.Group(); root.add(body);
   const b0 = new THREE.SphereGeometry(0.86, 24, 16); b0.scale(1, 0.8, 1); b0.translate(0, 0.68, 0); const b1 = new THREE.SphereGeometry(0.6, 22, 14); b1.scale(1.1, 0.8, 1.1); b1.translate(0, 1.5, 0);
-  const snowM = new THREE.Mesh(mergeGeometries([b0, b1]), M.snowFig); snowM.castShadow = true; snowM.receiveShadow = true; body.add(snowM);
+  if (HALLO) { // Halloween: hoppegræskar - et stort græskar med lysende, smilende ansigt, kvistarme og en hue af blade
+    const pk = new THREE.Mesh(HD.pumpBody, HD.pumpMat); pk.scale.set(0.95, 1.25, 0.95); pk.position.y = 0.95; pk.castShadow = true; pk.receiveShadow = true; body.add(pk);
+    const fc = new THREE.Mesh(HD.face, HD.faceMat); fc.scale.copy(pk.scale); fc.position.copy(pk.position); body.add(fc);
+  } else { const snowM = new THREE.Mesh(mergeGeometries([b0, b1]), M.snowFig); snowM.castShadow = true; snowM.receiveShadow = true; body.add(snowM); }
   const k = newKit();
+  if (!HALLO) {
   kitAdd(k.cloth, new THREE.TorusGeometry(0.8, 0.1, 10, 36), stripes('#d61f2c', '#f7f4ee', 18), 0, 0.74, 0, 1, 1, 1, Math.PI / 2); // bolsjestribet "fjeder"-bælte
   kitAdd(k.cloth, new THREE.TorusGeometry(0.5, 0.1, 10, 28), '#2f7a3c', 0, 1.18, 0, 1, 1, 1, Math.PI / 2); // halstørklæde
   kitAdd(k.cloth, new RoundedBoxGeometry(0.2, 0.44, 0.07, 2, 0.03), '#2f7a3c', 0.28, 0.96, 0.5, 1, 1, 1, 0.25, 0, 0.15);
@@ -5058,11 +5109,12 @@ function hoppeSnemand(x, z, rotY = 0) {
   for (let i = 0; i < 5; i++) { const a = (i - 2) * 0.3; kitAdd(k.gloss, SG(0.033, 8, 6), '#141014', Math.sin(a) * 0.28, 1.36 - Math.cos(a) * 0.05 + 0.05, 0.56); }
   kitAdd(k.gloss, new THREE.ConeGeometry(0.07, 0.4, 12), '#ff7a1a', 0, 1.48, 0.8, 1, 1, 1, Math.PI / 2);
   for (let i = 0; i < 3; i++) kitAdd(k.gloss, SG(0.055, 10, 8), '#141014', 0, 0.5 + i * 0.25, 0.84 - i * 0.08);
+  }
   for (const sx of [-1, 1]) { kitAdd(k.cloth, new THREE.CylinderGeometry(0.03, 0.04, 0.85, 6), '#5a3a22', sx * 0.9, 1.2, 0, 1, 1, 1, 0, 0, sx * -1.0); kitAdd(k.cloth, new THREE.CylinderGeometry(0.02, 0.025, 0.28, 5), '#5a3a22', sx * 1.18, 1.46, 0.05, 1, 1, 1, 0, 0, sx * -0.3); }
   // flad strikhue (hovedet er selve hoppepuden)
-  const hk = newKit(); kitAdd(hk.cloth, SG(0.62, 22, 12), (x, y) => (y < -0.1 ? '#f7f4ee' : '#d61f2c'), 0, 0, 0, 1.08, 0.42, 1.08); const playHat = node(body, 0, 1.74, 0); kitMesh(kitDone(hk), playHat);
+  const hk = newKit(); kitAdd(hk.cloth, SG(0.62, 22, 12), HALLO ? (x, y, z) => (y < -0.1 ? '#2f6a2a' : Math.cos(Math.atan2(x, z) * 5) > 0.75 ? '#3a7a30' : '#5aa040') : (x, y) => (y < -0.1 ? '#f7f4ee' : '#d61f2c'), 0, 0, 0, 1.08, 0.42, 1.08); const playHat = node(body, 0, 1.74, 0); kitMesh(kitDone(hk), playHat);
   const set = kitDone(k); kitMesh(set, body);
-  const tk = newKit(); kitAdd(tk.cloth, SG(0.16, 12, 10), '#f7f4ee', 0, 0, 0);
+  const tk = newKit(); if (HALLO) { kitAdd(tk.cloth, new THREE.CylinderGeometry(0.07, 0.11, 0.34, 8), '#6e6a26', 0, 0.05, 0, 1, 1, 1, 0, 0, 0.25); kitAdd(tk.cloth, new THREE.TorusGeometry(0.08, 0.022, 6, 14, Math.PI * 1.5), '#4f9a3a', 0.12, 0.12, 0); } else kitAdd(tk.cloth, SG(0.16, 12, 10), '#f7f4ee', 0, 0, 0); // Halloween: stilk med en lille ranke
   const tip = new THREE.Group(); tip.position.set(0, 0.28, 0); playHat.add(tip); kitMesh(kitDone(tk), tip);
   const glow = groundGlow(x, z, 2.6, [1.0, 0.45, 0.35], 0.25);
   const box = new Box(x, y + 1.0, z, 0.85, 1.0, 0.85, 0, 0, 0, {});
@@ -5763,6 +5815,21 @@ for (const c of [typeof cottA !== 'undefined' ? cottA : null, typeof cottB !== '
 // Julestemning i baggrunden: julemandens kane over himlen, sneharer der hopper rundt, og en nisse der løber på skøjter på søen.
 // Ingen ekstra lyskilder (kun emissive/additive sprites), få draw calls, og intet af det kan skade spilleren.
 
+// ── Halloween: små, venlige flagermus med store øjne og vinger, der basker ──
+const FLYBAT = HALLO ? (() => {
+  const C = '#3a2a4e', k = newKit();
+  kitAdd(k.fur, SG(0.16, 12, 10), C, 0, 0, 0, 1, 1, 1.15); kitAdd(k.fur, SG(0.12, 12, 10), C, 0, 0.1, 0.13);
+  for (const sx of [-1, 1]) { kitAdd(k.fur, new THREE.ConeGeometry(0.05, 0.13, 6), C, sx * 0.06, 0.22, 0.12, 1, 1, 1, 0, 0, -sx * 0.3); kitAdd(k.gloss, SG(0.032, 8, 6), '#ffffff', sx * 0.047, 0.125, 0.225); kitAdd(k.gloss, SG(0.016, 6, 5), '#1a1020', sx * 0.047, 0.125, 0.252); }
+  const wing = (s) => { const sh = new THREE.Shape(); sh.moveTo(0, 0.08); sh.quadraticCurveTo(s * 0.25, 0.22, s * 0.58, 0.12); sh.lineTo(s * 0.46, -0.05); sh.quadraticCurveTo(s * 0.4, 0.04, s * 0.32, -0.08); sh.quadraticCurveTo(s * 0.24, 0.0, s * 0.16, -0.1); sh.quadraticCurveTo(s * 0.08, -0.02, 0, -0.1); sh.closePath();
+    const w = newKit(); kitAdd(w.cloth, new THREE.ExtrudeGeometry(sh, { depth: 0.014, bevelEnabled: false, curveSegments: 6 }).translate(0, 0, -0.007).rotateX(Math.PI / 2), '#4a3466'); return kitDone(w); };
+  return { body: kitDone(k), wings: [wing(-1), wing(1)] };
+})() : null;
+function makeFlyBat(parent, s = 1) { const g = node(parent); g.scale.setScalar(s); kitMesh(FLYBAT.body, g, false); const wings = FLYBAT.wings.map((w, i) => { const n = node(g, (i ? 1 : -1) * 0.1, 0.03, 0); kitMesh(w, n, false); return n; }); return { g, wings }; }
+function flapBat(b, ph) { const a = Math.sin(ph) * 0.9; b.wings[0].rotation.z = -a; b.wings[1].rotation.z = a; b.g.position.y += Math.cos(ph) * 0.06; }
+// fire flagermus, der flyver i ottetaller højt oppe i retning af fuldmånen (ses bedst fra startskærmen)
+if (HALLO) { const C = V3(0, TOWER.top + 14, 0).addScaledVector(MOON_DIR, 70), bats = [0, 1, 2, 3].map(() => makeFlyBat(scene, 4.5));
+  HOOKS.update.push((dt, t, state) => { if (state === 'pause') return; bats.forEach((b, i) => { const a = t * 0.35 + i * Math.PI / 2, x = Math.sin(a) * 15, y = Math.sin(2 * a) * 3, z = Math.sin(2 * a) * 6; b.g.position.set(C.x + x, C.y + y, C.z + z); b.g.rotation.y = Math.atan2(Math.cos(a) * 15, Math.cos(2 * a) * 12); flapBat(b, t * 11 + i); }); }); }
+
 // ── Julemandens kane med rensdyr ──
 const SLEIGH = (() => {
   const root = new THREE.Group(); root.visible = false; scene.add(root);
@@ -5827,7 +5894,44 @@ const SLEIGH = (() => {
   // tømmer
   const rk = newKit(); for (const sx of [-1, 1]) { const a = V3(sx * 0.33, 1.1, 0.35), b = V3(sx * 0.4, 0.95, 3.8); const d = b.clone().sub(a); const c = a.clone().add(b).multiplyScalar(0.5); const cyl = new THREE.CylinderGeometry(0.015, 0.015, d.length(), 4); cyl.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(V3(0, 1, 0), d.normalize())); kitAdd(rk.cloth, cyl, '#7a1420', c.x, c.y, c.z); }
   kitMesh(kitDone(rk), inner, false);
-  const S = { root, inner, deer, t: -1, dur: 10, next: TEST ? 1e9 : 16, a: V3(), b: V3(), y: 30, dir: V3(), nb: 0, hoho: false, pos: V3() };
+  // Halloween: en venlig heks på kost med en sort kat bag sig og tre flagermus, der flyver med (kane og rensdyr skjules)
+  let bats = null;
+  if (HALLO) {
+    for (const c of inner.children) c.visible = false;
+    const wk = newKit(), PUR = '#5b2f8f', HAT = '#3d2360', SKIN = '#f6c7a6', HAIR = '#e8742a', DK = '#2a1838';
+    const seg = (list, a, b, r, c) => { const d = V3().subVectors(b, a), L = d.length(), e = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().setFromUnitVectors(V3(0, 1, 0), d.normalize())); kitAdd(list, new THREE.CapsuleGeometry(r, Math.max(0.01, L - 2 * r), 4, 8), c, (a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2, 1, 1, 1, e.x, e.y, e.z); };
+    // kosten: skaft, børste og bånd
+    kitAdd(wk.cloth, new THREE.CylinderGeometry(0.045, 0.055, 2.7, 8), '#7a4a26', 0, 0.9, 0.25, 1, 1, 1, Math.PI / 2, 0, 0);
+    kitAdd(wk.fur, new THREE.ConeGeometry(0.34, 0.85, 16, 3), (x, y, z) => (Math.floor((Math.atan2(x, z) + 4) * 5) % 2 ? '#d9a441' : '#b98a35'), 0, 0.9, -1.45, 1, 1, 1, Math.PI / 2, 0, 0);
+    kitAdd(wk.cloth, new THREE.TorusGeometry(0.085, 0.035, 6, 14), '#7a2a9a', 0, 0.9, -1.2);
+    // heksen: kjole, krop, arme, ben med stribede strømper, hoved, hår og hat
+    kitAdd(wk.cloth, new THREE.CylinderGeometry(0.2, 0.42, 0.45, 18), PUR, 0, 0.98, 0.15);
+    kitAdd(wk.cloth, SG(0.26, 16, 12), PUR, 0, 1.35, 0.18, 1, 1.1, 0.9);
+    kitAdd(wk.cloth, new THREE.TorusGeometry(0.17, 0.05, 8, 18), '#ff8a1e', 0, 1.57, 0.18, 1, 1, 1, Math.PI / 2, 0, 0);
+    for (const sx of [-1, 1]) {
+      seg(wk.cloth, V3(sx * 0.24, 1.45, 0.2), V3(sx * 0.1, 0.99, 0.74), 0.075, PUR); kitAdd(wk.fur, SG(0.07, 10, 8), SKIN, sx * 0.1, 0.97, 0.78);
+      seg(wk.cloth, V3(sx * 0.14, 0.95, 0.22), V3(sx * 0.21, 0.56, 0.52), 0.065, ystripes('#ff8a1e', DK, 0.07)); kitAdd(wk.gloss, SG(0.08, 10, 8), DK, sx * 0.21, 0.5, 0.6, 0.8, 0.6, 1.6);
+      seg(wk.fur, V3(sx * 0.2, 1.8, 0.1), V3(sx * 0.26, 1.45, -0.05), 0.06, HAIR); kitAdd(wk.cloth, SG(0.05, 8, 6), '#7a2a9a', sx * 0.25, 1.48, -0.04);
+    }
+    kitAdd(wk.fur, SG(0.24, 18, 14), SKIN, 0, 1.82, 0.22);
+    kitAdd(wk.fur, SG(0.26, 18, 14), HAIR, 0, 1.86, 0.14, 1.05, 1, 1);
+    kitAdd(wk.fur, SG(0.14, 14, 10), HAIR, 0, 1.98, 0.33, 1.4, 0.45, 0.6);
+    for (const sx of [-1, 1]) { kitAdd(wk.gloss, SG(0.035, 10, 8), '#1a1020', sx * 0.08, 1.85, 0.43, 0.85, 1.2, 0.5); kitAdd(wk.gloss, SG(0.012, 6, 5), '#ffffff', sx * 0.08 + 0.01, 1.865, 0.445); kitAdd(wk.fur, SG(0.045, 8, 6), '#ff9aa6', sx * 0.14, 1.78, 0.4, 1, 0.7, 0.5); }
+    kitAdd(wk.fur, SG(0.04, 8, 6), '#f2a08a', 0, 1.8, 0.46);
+    kitAdd(wk.gloss, new THREE.TorusGeometry(0.06, 0.014, 6, 12, Math.PI), '#7a2030', 0, 1.745, 0.44, 1, 1, 1, 0, 0, Math.PI);
+    const hk = (g, c) => kitAdd(wk.cloth, g, c, 0, 2.02, 0.2, 1, 1, 1, -0.25, 0, 0.1);
+    hk(new THREE.TorusGeometry(0.3, 0.14, 8, 28).rotateX(Math.PI / 2).scale(1, 0.18, 1), HAT);
+    hk(new THREE.CylinderGeometry(0.1, 0.24, 0.42, 16).translate(0, 0.21, 0), HAT);
+    hk(new THREE.CylinderGeometry(0.212, 0.243, 0.07, 16, 1, true).translate(0, 0.05, 0), '#ff8a1e');
+    hk(new THREE.ConeGeometry(0.1, 0.32, 14).translate(0, 0.16, 0).rotateX(-0.9).translate(0, 0.415, 0), HAT);
+    // den sorte kat bag på kosten
+    kitAdd(wk.fur, SG(0.16, 12, 10), '#22182c', 0, 1.08, -0.55, 0.9, 1, 1.2); kitAdd(wk.fur, SG(0.12, 12, 10), '#22182c', 0, 1.3, -0.45);
+    for (const sx of [-1, 1]) { kitAdd(wk.fur, new THREE.ConeGeometry(0.045, 0.1, 6), '#22182c', sx * 0.06, 1.42, -0.46, 1, 1, 1, 0, 0, -sx * 0.3); kitAdd(wk.gloss, SG(0.025, 8, 6), '#d8f060', sx * 0.045, 1.32, -0.345, 1, 1.2, 0.6); }
+    seg(wk.fur, V3(0, 1.05, -0.7), V3(0, 1.35, -0.88), 0.03, '#22182c');
+    kitMesh(kitDone(wk), inner, false);
+    bats = [0, 1, 2].map(() => makeFlyBat(root, 1.6));
+  }
+  const S = { root, inner, deer, bats, t: -1, dur: 10, next: TEST ? 1e9 : 16, a: V3(), b: V3(), y: 30, dir: V3(), nb: 0, hoho: false, pos: V3() };
   return S;
 })();
 function launchSleigh(force = false) {
@@ -5853,7 +5957,8 @@ HOOKS.update.push((dt, t, state) => {
   S.inner.rotation.x = -(smoothstep(0.78, 1, u) - (1 - smoothstep(0, 0.22, u))) * 0.25 - Math.cos(u * Math.PI * 3) * 0.05; S.inner.rotation.z = Math.sin(u * Math.PI * 2) * 0.06;
   for (const d of S.deer) { const ph = t * 9 + d.ph; d.lf.rotation.x = Math.sin(ph) * 0.8; d.lb.rotation.x = Math.sin(ph + 2.2) * 0.8; d.g.position.y = 0.85 + Math.sin(ph * 2) * 0.06; d.g.rotation.x = Math.sin(ph) * 0.06; }
   // stjernestøv bag kanen
-  if (rand() < dt * 40) { const bp = S.root.localToWorld(V3(rr(-1, 1), 0.6, -2.4)); sparks.spawn(bp.x, bp.y, bp.z, rr(-0.5, 0.5), rr(-0.8, 0.2), rr(-0.5, 0.5), rr(1.0, 1.8), rr(0.45, 0.8), 1.7, 1.35, 0.6, 0.9, 0.4, 0.3, -0.3); }
+  if (rand() < dt * 40) { const bp = S.root.localToWorld(V3(rr(-1, 1) * (HALLO ? 0.4 : 1), HALLO ? 1.5 : 0.6, HALLO ? -3.3 : -2.4)); const c = HALLO ? ((S.t * 7) % 2 < 1 ? [1.9, 0.75, 0.2] : [1.1, 0.5, 1.9]) : [1.7, 1.35, 0.6]; sparks.spawn(bp.x, bp.y, bp.z, rr(-0.5, 0.5), rr(-0.8, 0.2), rr(-0.5, 0.5), rr(1.0, 1.8), rr(0.45, 0.8), c[0], c[1], c[2], 0.9, 0.4, 0.3, -0.3); } // Halloween: orange og lilla gnister bag kosten
+  if (S.bats) S.bats.forEach((b, i) => { const a = S.t * 2 + i * 2.1, R = 3.2; b.g.position.set(Math.cos(a) * R, 2.6 + Math.sin(S.t * 3 + i) * 0.7, Math.sin(a) * R + 1); b.g.rotation.y = Math.atan2(-Math.sin(a) * R * 2, Math.cos(a) * R * 2 + 24); flapBat(b, S.t * 13 + i * 2); });
   // kaneklokker med afstand og stereo
   if (Audio.ctx && Audio.sleighBus && Audio.ctx.state === 'running') {
     const A = Audio, now = A.ctx.currentTime; const dist = camera.position.distanceTo(S.pos);
@@ -5939,7 +6044,7 @@ HOOKS.update.push((dt, t, state) => { if (state === 'pause') return; for (const 
 
 // ── Nissen på skøjter (søen) ──
 const SKATER = (() => {
-  const root = new THREE.Group(); root.scale.setScalar(1.05); scene.add(root); const G = NISSE_GEO;
+  const root = new THREE.Group(); root.scale.setScalar(1.05); scene.add(root); const G = HALLO ? NISSE_BAT : NISSE_GEO;
   const body = node(root); kitMesh(G.body, body);
   const head = node(body, 0, 1.0, 0.02); kitMesh(G.head, head);
   const eyes = node(head, 0, 0.035, 0.165); kitMesh(G.eyes, eyes, false);
@@ -5947,8 +6052,15 @@ const SKATER = (() => {
   const arms = []; for (const sx of [-1, 1]) { const a = node(body, sx * 0.24, 0.8, 0); a.rotation.z = sx * 0.2; kitMesh(G.arm, a, false); arms.push(a); }
   const sk = newKit(); for (const sx of [-1, 1]) { kitAdd(sk.gloss, new RoundedBoxGeometry(0.03, 0.04, 0.34, 2, 0.01), '#dfe6f0', sx * 0.1, -0.02, 0.05); kitAdd(sk.gloss, new THREE.TorusGeometry(0.05, 0.012, 5, 10, Math.PI), '#dfe6f0', sx * 0.1, 0.02, 0.22, 1, 1, 1, 0, Math.PI / 2, 0); } kitMesh(kitDone(sk), body, false);
   // halstørklæde der blafrer
-  const scK = newKit(); kitAdd(scK.cloth, new RoundedBoxGeometry(0.1, 0.34, 0.03, 2, 0.012), ystripes('#2f7a3c', '#f4f1ea', 0.07), 0, -0.17, 0); const scarf = node(body, 0.08, 0.93, -0.2); kitMesh(kitDone(scK), scarf, false);
-  const S = { root, body, head, eyes, hat1, hat2, arms, scarf, a: 0, spd: 4.2, spin: -1, spinCool: 12, t: 0, pos: V3(), prevF: 0, tip: new Spring1(0), scS: new Spring1(0), blinkT: 2, brake: 0 };
+  const scK = newKit(); kitAdd(scK.cloth, new RoundedBoxGeometry(0.1, 0.34, 0.03, 2, 0.012), HALLO ? ystripes('#ff8a1e', '#5a3a80', 0.07) : ystripes('#2f7a3c', '#f4f1ea', 0.07), 0, -0.17, 0); const scarf = node(body, 0.08, 0.93, -0.2); kitMesh(kitDone(scK), scarf, false);
+  let wings = null;
+  if (HALLO) { // Halloween: flagermus-ører i stedet for nissehuens spids, og to vinger, der basker
+    hat1.visible = false;
+    const ek = newKit(); for (const sx of [-1, 1]) { kitAdd(ek.cloth, new THREE.ConeGeometry(0.075, 0.19, 10), '#3b2a52', sx * 0.11, 0.3, -0.01, 1, 1, 0.6, 0, 0, -sx * 0.35); kitAdd(ek.cloth, new THREE.ConeGeometry(0.045, 0.12, 8), '#c99ae0', sx * 0.107, 0.29, 0.02, 1, 1, 0.4, 0, 0, -sx * 0.35); } kitMesh(kitDone(ek), head);
+    wings = [-1, 1].map(s => { const sh = new THREE.Shape(); sh.moveTo(0, 0.07); sh.quadraticCurveTo(s * 0.22, 0.24, s * 0.5, 0.18); sh.lineTo(s * 0.38, -0.04); sh.quadraticCurveTo(s * 0.32, 0.04, s * 0.25, -0.07); sh.quadraticCurveTo(s * 0.18, 0.0, s * 0.12, -0.09); sh.quadraticCurveTo(s * 0.06, -0.02, 0, -0.07); sh.closePath();
+      const wk = newKit(); kitAdd(wk.cloth, new THREE.ExtrudeGeometry(sh, { depth: 0.014, bevelEnabled: false, curveSegments: 6 }).translate(0, 0, -0.007), '#3b2a52'); const w = node(body, s * 0.08, 0.8, -0.21); w.rotation.y = s * 0.45; kitMesh(kitDone(wk), w, false); return w; });
+  }
+  const S = { root, body, head, eyes, hat1, hat2, arms, scarf, wings, a: 0, spd: 4.2, spin: -1, spinCool: 12, t: 0, pos: V3(), prevF: 0, tip: new Spring1(0), scS: new Spring1(0), blinkT: 2, brake: 0 };
   return S;
 })();
 HOOKS.update.push((dt, t, state) => {
@@ -5973,6 +6085,7 @@ HOOKS.update.push((dt, t, state) => {
   const spinUp = S.spin >= 0 ? smoothstep(0, 0.3, S.spin) * (1 - smoothstep(1.2, 1.5, S.spin)) : 0;
   S.arms[0].rotation.x = Math.sin(stride) * 0.7 * (1 - S.brake) * (1 - spinUp); S.arms[1].rotation.x = -Math.sin(stride) * 0.7 * (1 - S.brake) * (1 - spinUp);
   S.arms[0].rotation.z = lerp(-0.35, -2.6, spinUp); S.arms[1].rotation.z = near ? damp(S.arms[1].rotation.z, 2.5 + Math.sin(t * 9) * 0.35, 8, dt) : lerp(0.35, 2.6, spinUp);
+  if (S.wings) S.wings.forEach((w, i) => { const s = i ? 1 : -1; w.rotation.y = s * (0.45 + Math.sin(t * 7) * 0.3 + spinUp * 0.5); w.rotation.z = s * Math.sin(t * 7 + 0.6) * 0.15; }); // Halloween: vingerne basker
   S.hat1.rotation.x = S.tip.step(-0.45 - 0.3 * (1 - S.brake), 70, 5, dt); S.hat2.rotation.x = S.hat1.rotation.x * 1.3 - 0.3;
   S.scarf.rotation.x = S.scS.step(-0.9 * (1 - S.brake) + Math.sin(t * 11) * 0.12 * (1 - S.brake), 60, 5, dt);
   S.head.rotation.z = Math.sin(t * 0.7) * 0.06;
@@ -6208,6 +6321,31 @@ const GUIDE = (() => {
     marker.position.copy(goal.p);marker.position.y+=0.09;ring.scale.setScalar(1+Math.sin(S.t*4)*0.08);ringMat.opacity=0.68+Math.sin(S.t*3)*0.15;
     arrow.position.y=2.15+Math.sin(S.t*3)*0.16;arrow.rotation.y=S.t;
   });
+  if (HALLO) { // Halloween: nissevennen er et lille, venligt spøgelse, der svæver foran og bærer en græskarlygte
+    body.visible = false;
+    const gm = addRim(new THREE.MeshPhysicalMaterial({ color: col('#f7f4ff'), emissive: col('#8f7fd0'), emissiveIntensity: 0.45, roughness: 0.6, sheen: 0.8, sheenRoughness: 0.5, sheenColor: col('#ffffff'), side: THREE.DoubleSide }), 0.6);
+    const prof = []; for (let i = 0; i <= 30; i++) { const y = 0.12 + i / 30 * 1.22; const r = y < 0.8 ? 0.36 + 0.07 * (0.8 - y) / 0.68 : 0.36 * Math.sqrt(Math.max(0, 1 - ((y - 0.8) / 0.54) ** 2)); prof.push(new THREE.Vector2(Math.max(r, 0.001), y)); }
+    const bg = new THREE.LatheGeometry(prof, 40); { const p = bg.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i); const w = 1 - smoothstep(0.12, 0.36, y); p.setY(i, y + Math.sin(Math.atan2(x, z) * 6) * 0.06 * w); } bg.computeVertexNormals(); } // bølget kant forneden
+    const g = node(root), gb = new THREE.Mesh(bg, gm); gb.castShadow = true; g.add(gb);
+    const fk = newKit();
+    for (const sx of [-1, 1]) { kitAdd(fk.gloss, SG(0.045, 12, 10), '#ffffff', sx * 0.135, 0.985, 0.305); kitAdd(fk.cloth, SG(0.05, 10, 8), '#ffb0c8', sx * 0.2, 0.905, 0.27, 1, 0.7, 0.5); }
+    kitAdd(fk.gloss, new THREE.TorusGeometry(0.06, 0.016, 6, 14, Math.PI), '#3a1838', 0, 0.9, 0.345, 1, 1, 0.6, 0, 0, Math.PI);
+    kitMesh(kitDone(fk), g, false);
+    const eyes = node(g, 0, 1.0, 0.3); { const ek = newKit(); for (const sx of [-1, 1]) { kitAdd(ek.gloss, SG(0.055, 14, 10), '#2a1838', sx * 0.12, 0, 0, 0.85, 1.25, 0.45); kitAdd(ek.gloss, SG(0.018, 6, 5), '#ffffff', sx * 0.12 + 0.016, 0.025, 0.026); } kitMesh(kitDone(ek), eyes, false); }
+    const armG = new THREE.SphereGeometry(0.1, 14, 10).scale(0.75, 1.6, 0.75).translate(0, -0.12, 0);
+    const ga = [-1, 1].map(s => { const a = node(g, s * 0.34, 0.8, 0.02); const m = new THREE.Mesh(armG, gm); m.castShadow = true; a.add(m); a.rotation.z = s * 0.5; return a; });
+    const lan = node(ga[0], 0, -0.26, 0.04); pumpkinLantern(lan, 0, -0.12, 0, 0.11, 0); const lh = new THREE.Sprite(nisseLampMat); lh.scale.setScalar(1.0); lh.position.y = -0.04; lan.add(lh);
+    let lean = 0;
+    HOOKS.update.push((dt) => {
+      if (!root.visible) return;
+      const moving = S.u < 1 && !!S.path[S.index]; lean = damp(lean, moving ? 0.28 : 0, 6, dt);
+      g.position.y = 0.3 + Math.sin(S.t * 2.4) * 0.07; g.rotation.x = lean; g.rotation.z = Math.sin(S.t * 1.6) * 0.06;
+      ga[1].rotation.z = moving ? 0.6 + Math.sin(S.t * 6) * 0.15 : 2.3 + Math.sin(S.t * 8) * 0.3; ga[1].rotation.x = moving ? 0.3 : -0.2;
+      ga[0].rotation.z = -0.35 + Math.sin(S.t * 3) * 0.05; ga[0].rotation.x = -0.45; lan.rotation.x = 0.45 - lean + Math.sin(S.t * 1.9) * 0.1;
+      eyes.scale.y = Math.sin(S.t * 1.8) > 0.996 ? 0.1 : 1;
+    });
+    S.ghost = g;
+  }
   return Object.assign(S,{setEnabled,groundPath,clear,navPoint,plan});
 })();
 window.__GUIDE = GUIDE;
