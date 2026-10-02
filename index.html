@@ -110,6 +110,28 @@ kbd{display:inline-block;font-family:inherit;font-weight:700;font-size:13px;min-
 <script type="importmap">
 {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}
 </script>
+<script>
+// TEMA: ?tema=halloween giver Halloween-udgaven "Pigen og Græskarlygten". Uden parameter er det juleudgaven, præcis som før.
+// Spillets kode læser window.TEMA (se HALLO i CONFIG & UTIL). Se også HALLOWEEN.md.
+window.TEMA = new URLSearchParams(location.search).get('tema') === 'halloween' ? 'halloween' : 'jul';
+if (window.TEMA === 'halloween') { document.documentElement.dataset.tema = 'halloween'; document.title = 'Pigen og Græskarlygten'; }
+</script>
+<style>
+/* Halloween-udgaven (kun når <html data-tema="halloween">): lilla nat, orange græskarlys */
+[data-tema=halloween] body{background:#1a0e2a}
+[data-tema=halloween] #vignette{background:radial-gradient(ellipse at center,rgba(0,0,0,0) 55%,rgba(24,6,36,.55) 100%)}
+[data-tema=halloween] #start{background:linear-gradient(180deg,rgba(26,8,40,.6),rgba(30,10,46,.05) 38%,rgba(30,10,46,.1) 60%,rgba(18,6,30,.78))}
+[data-tema=halloween] .titleStar{filter:drop-shadow(0 0 22px rgba(255,140,30,.85))}
+[data-tema=halloween] h1{text-shadow:0 5px 0 #5b2380,0 10px 30px rgba(0,0,0,.5)}
+[data-tema=halloween] h1 small{color:#ffb347;text-shadow:0 3px 0 #7a3a00,0 8px 20px rgba(0,0,0,.4)}
+[data-tema=halloween] h1 .gold{color:#ff9a2e;text-shadow:0 5px 0 #8a3a00,0 10px 30px rgba(0,0,0,.5)}
+[data-tema=halloween] .btn{background:linear-gradient(180deg,#ff9a3c,#e0610f);box-shadow:0 6px 0 #8a3500,0 12px 30px rgba(0,0,0,.4)}
+[data-tema=halloween] .btn.small{background:linear-gradient(180deg,#7a4ab0,#4e2a80);box-shadow:0 5px 0 #2a1450,0 10px 24px rgba(0,0,0,.35)}
+[data-tema=halloween] #startBtn:not(:disabled){animation:pulseH 1.8s ease-in-out infinite}
+@keyframes pulseH{50%{box-shadow:0 6px 0 #8a3500,0 0 34px rgba(255,150,50,.8)}}
+[data-tema=halloween] .keys b{color:#ffb347}
+[data-tema=halloween] #pause h2{text-shadow:0 4px 0 #5b2380}
+</style>
 </head>
 <body>
 <div id="vignette"></div>
@@ -141,6 +163,18 @@ kbd{display:inline-block;font-family:inherit;font-weight:700;font-size:13px;min-
   </div>
   <div class="foot"><kbd>M</kbd> musik til/fra · <kbd>P</kbd> pause · <kbd>Enter</kbd> start</div>
 </div>
+<script>
+// Halloween: startskærmens titel, billede og tekst (sættes med det samme, så juleteksten aldrig blinker frem)
+if (window.TEMA === 'halloween') {
+  const s = document.getElementById('start');
+  s.querySelector('.titleStar').outerHTML = '<svg class="titleStar" viewBox="0 0 100 100"><defs><radialGradient id="pg" cx="42%" cy="38%" r="70%"><stop offset="0" stop-color="#ffc56b"/><stop offset=".6" stop-color="#f7841e"/><stop offset="1" stop-color="#c4500a"/></radialGradient></defs>'
+    + '<path d="M50 26c-1-9 2-15 9-18" stroke="#5b7f2a" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M57 13c6-6 15-5 19 0-7 3-13 3-19 0z" fill="#7fae3c"/>'
+    + '<ellipse cx="31" cy="61" rx="23" ry="30" fill="url(#pg)" stroke="#9a420a" stroke-width="2.5"/><ellipse cx="69" cy="61" rx="23" ry="30" fill="url(#pg)" stroke="#9a420a" stroke-width="2.5"/><ellipse cx="50" cy="61" rx="21" ry="33" fill="url(#pg)" stroke="#9a420a" stroke-width="2.5"/>'
+    + '<path d="M27 56Q33 44 39 56Z M61 56Q67 44 73 56Z" fill="#ffe27a"/><path d="M30 67Q50 90 70 67Q50 78 30 67Z" fill="#ffe27a"/><path d="M40 30q4-3 8-1" stroke="#ffd9a0" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/></svg>';
+  s.querySelector('h1').innerHTML = 'Pigen<small>og</small><span class="gold">Græskarlygten</span>';
+  s.querySelector('.sub').textContent = 'Tag heksehatten på og gå på halloweeneventyr i måneskin! Følg din spøgelsesven, find fem slikposer med sjove overraskelser, og leg med hoppegræskar. Græskarlygten venter på toppen af tårnet.';
+}
+</script>
 <div class="screen hidden" id="win">
   <div class="panel">
     <h1>Glædelig jul!<small>Du nåede julestjernen</small></h1>
@@ -150,6 +184,7 @@ kbd{display:inline-block;font-family:inherit;font-weight:700;font-size:13px;min-
     <button class="btn" id="againBtn">Spil igen</button>
   </div>
 </div>
+<script>if (window.TEMA === 'halloween') document.querySelector('#win h1').innerHTML = 'Glædelig halloween!<small>Du nåede græskarlygten</small>';</script>
 <div class="screen hidden" id="pause">
   <div class="panel">
     <h2>Pause</h2>
@@ -204,6 +239,13 @@ const wrapAngle = (a) => { a = (a + Math.PI) % (Math.PI * 2); if (a < 0) a += Ma
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const rand = mulberry32(20241224);
 const rr = (a, b) => a + (b - a) * rand();
+// TEMA (sat af det lille script i <head>): 'jul' er standard og skal være præcis som før; 'halloween' kommer med ?tema=halloween.
+// Alle Halloween-ændringer er gatet med HALLO. Halloween-ting må ALDRIG bruge rand()/rr() (verdens faste generator - ellers flytter
+// træer og pynt sig); de bruger hrand()/hrr() i stedet.
+const TEMA = window.TEMA === 'halloween' ? 'halloween' : 'jul';
+const HALLO = TEMA === 'halloween';
+const hrand = mulberry32(31102026);
+const hrr = (a, b) => a + (b - a) * hrand();
 const V3 = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const DEG = Math.PI / 180;
 function hash2(ix, iy) { let h = Math.imul(ix | 0, 374761393) ^ Math.imul(iy | 0, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16; return (h >>> 0) / 4294967296; }
@@ -229,7 +271,8 @@ document.body.prepend(renderer.domElement);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 1200);
 // blue-hour haze colour (linear). The fog shader below adds a warm tint toward the sunset.
-const FOG_COLOR = new THREE.Color().setRGB(0.155, 0.215, 0.42);
+// Halloween: lilla skumringsdis (det orange skær ved horisonten kommer fra hazeColor i SKY & LIGHT)
+const FOG_COLOR = HALLO ? new THREE.Color().setRGB(0.19, 0.105, 0.34) : new THREE.Color().setRGB(0.155, 0.215, 0.42);
 scene.fog = new THREE.FogExp2(FOG_COLOR, 0.0072);
 scene.background = FOG_COLOR.clone();
 
@@ -243,9 +286,10 @@ composer.addPass(bloom);
 // a touch of saturation/contrast, soft vignette and dithering (kills banding in the dark sky).
 const outputPass = new OutputPass();
 const GRADE = {
-  uShadowTint: { value: new THREE.Vector3(0.86, 0.97, 1.12) },
-  uHighTint: { value: new THREE.Vector3(1.05, 1.0, 0.93) },
-  uSat: { value: 1.12 }, uContrast: { value: 1.06 }, uVignette: { value: 0.32 }, uLift: { value: new THREE.Vector3(0.012, 0.018, 0.04) },
+  // Halloween: lilla skygger og varme, orange højlys
+  uShadowTint: { value: HALLO ? new THREE.Vector3(0.96, 0.9, 1.14) : new THREE.Vector3(0.86, 0.97, 1.12) },
+  uHighTint: { value: HALLO ? new THREE.Vector3(1.08, 0.97, 0.86) : new THREE.Vector3(1.05, 1.0, 0.93) },
+  uSat: { value: 1.12 }, uContrast: { value: 1.06 }, uVignette: { value: 0.32 }, uLift: { value: HALLO ? new THREE.Vector3(0.03, 0.01, 0.045) : new THREE.Vector3(0.012, 0.018, 0.04) },
 };
 Object.assign(outputPass.material.uniforms, GRADE);
 outputPass.material.fragmentShader = outputPass.material.fragmentShader
@@ -341,7 +385,7 @@ function snowify(mat, o = {}) {
         vec3 V = normalize(cameraPosition - vSWPos);
         vec3 Nw = normalize(vSWN);
         float fr = pow(1.0 - clamp(dot(Nw, V), 0.0, 1.0), 3.0);
-        outgoingLight += vec3(0.20, 0.30, 0.62) * fr * ${rim.toFixed(3)} * msk;
+        outgoingLight += ${HALLO ? 'vec3(0.34, 0.20, 0.52)' : 'vec3(0.20, 0.30, 0.62)'} * fr * ${rim.toFixed(3)} * msk;
         vec3 dd = reflectedLight.directDiffuse;
         outgoingLight += vec3(1.0, 0.45, 0.16) * max(dd.r - dd.b * 1.1 - 0.03, 0.0) * ${sss.toFixed(3)} * msk;
         vec3 sp = vSWPos * ${cell.toFixed(1)};
@@ -366,7 +410,7 @@ function addSparkle(mat, density = 0.975, amount = 1.6) { return snowify(mat, { 
 //  - two-tone rim: cool moonlit rim on the moon side, warm lamplight rim on the other side
 //  - soft camera-side fill (a "key-to-camera" wrap light, like a film fill) so dark fur never turns into a silhouette
 //  - bounce light from the snow/ice onto downward-facing parts (bellies, chins, under hats)
-const RIM_U = { uRimL: { value: new THREE.Vector3(0, 1, 0) }, uFill: { value: new THREE.Color().setRGB(0.26, 0.235, 0.225) }, uBounce: { value: new THREE.Color().setRGB(0.13, 0.16, 0.24) } };
+const RIM_U = { uRimL: { value: new THREE.Vector3(0, 1, 0) }, uFill: { value: new THREE.Color().setRGB(0.26, 0.235, 0.225) }, uBounce: { value: HALLO ? new THREE.Color().setRGB(0.17, 0.12, 0.2) : new THREE.Color().setRGB(0.13, 0.16, 0.24) } };
 function addRim(mat, strength = 0.45) {
   mat.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, RIM_U);
@@ -375,7 +419,7 @@ function addRim(mat, strength = 0.45) {
         float ndv = clamp(dot(rN, rV), 0.0, 1.0);
         float rim = pow(1.0 - ndv, 2.4);
         float side = dot(rN, uRimL);
-        vec3 rc = mix(vec3(1.0, 0.6, 0.32), vec3(0.62, 0.78, 1.0), smoothstep(-0.35, 0.45, side));
+        vec3 rc = mix(vec3(1.0, 0.6, 0.32), ${HALLO ? 'vec3(0.8, 0.68, 1.0)' : 'vec3(0.62, 0.78, 1.0)'}, smoothstep(-0.35, 0.45, side));
         totalEmissiveRadiance += rc * rim * ${(strength * 1.15).toFixed(3)} * (0.6 + 0.55 * smoothstep(-0.2, 0.7, side));
         float up = (vec4(rN, 0.0) * viewMatrix).y;
         totalEmissiveRadiance += diffuseColor.rgb * (uFill * (0.35 + 0.65 * ndv) + uBounce * clamp(0.3 - up * 0.7, 0.0, 1.0));
@@ -420,9 +464,22 @@ poolTex.colorSpace = THREE.NoColorSpace;
 
 // ═════════════════════════ SECTION: SKY & LIGHT ═════════════════════════
 const SUN_DIR = new THREE.Vector3(-0.75, 0.04, 0.66).normalize();
-const MOON_DIR = new THREE.Vector3(0.45, 0.62, -0.64).normalize();
+// Halloween: en stor fuldmåne lidt lavere på himlen mod nordvest, så den svæver ind over himlen på titelskærmen
+const MOON_DIR = HALLO ? new THREE.Vector3(-0.688, 0.375, -0.62).normalize() : new THREE.Vector3(0.45, 0.62, -0.64).normalize();
 // Shared GLSL for the horizon haze so sky and fog blend seamlessly (sunset glow toward SUN_DIR).
-const HAZE_GLSL = `
+// Halloween: et varmt orange bånd hele vejen rundt i horisonten (græskarnat), stærkest mod den sidste solrest i vest.
+const HAZE_GLSL = HALLO ? `
+  vec3 hazeColor(vec3 d, vec3 base){
+    vec2 sd = normalize(vec2(${SUN_DIR.x.toFixed(4)}, ${SUN_DIR.z.toFixed(4)}));
+    float s = max(dot(normalize(d.xz + 1e-5), sd), 0.0);
+    float h = max(d.y, 0.0);
+    vec3 c = base;
+    c += vec3(0.62, 0.22, 0.05) * (1.0 - smoothstep(0.0, 0.16, h)) * 0.5;
+    c += vec3(1.0, 0.40, 0.08) * pow(s, 3.0) * (1.0 - smoothstep(0.0, 0.34, h)) * 1.0;
+    c += vec3(0.42, 0.08, 0.34) * pow(s, 1.5) * (1.0 - smoothstep(0.02, 0.55, h)) * 0.6;
+    c += vec3(1.0, 0.58, 0.22) * pow(s, 24.0) * (1.0 - smoothstep(0.0, 0.09, h)) * 1.2;
+    return c;
+  }` : `
   vec3 hazeColor(vec3 d, vec3 base){
     vec2 sd = normalize(vec2(${SUN_DIR.x.toFixed(4)}, ${SUN_DIR.z.toFixed(4)}));
     float s = max(dot(normalize(d.xz + 1e-5), sd), 0.0);
@@ -478,7 +535,7 @@ const skyMat = new THREE.ShaderMaterial({
     float na(float az, float k, vec2 o){ return n2(vec2(cos(az), sin(az)) * k + o); }
     void main(){
       vec3 d = normalize(vDir); float h = d.y;
-      vec3 zen = vec3(0.004, 0.009, 0.042), mid = vec3(0.022, 0.050, 0.170);
+      vec3 zen = ${HALLO ? 'vec3(0.016, 0.004, 0.038), mid = vec3(0.08, 0.022, 0.15)' : 'vec3(0.004, 0.009, 0.042), mid = vec3(0.022, 0.050, 0.170)'};
       vec3 hor = hazeColor(d, uHor);
       vec3 c = mix(hor, mid, smoothstep(0.0, 0.3, h));
       c = mix(c, zen, smoothstep(0.25, 0.95, h));
@@ -494,32 +551,32 @@ const skyMat = new THREE.ShaderMaterial({
       float breathe = 0.65 + 0.35 * na(az, 2.2, vec2(0.0, uTime * 0.04 + 9.0));
       vec3 auc = mix(vec3(0.08, 0.85, 0.5), vec3(0.1, 0.55, 0.75), smoothstep(0.0, 0.12, above));
       auc = mix(auc, vec3(0.45, 0.22, 0.75), smoothstep(0.1, 0.3, above));
-      c += auc * veil * rays * breathe * north * smoothstep(0.35, 0.65, na(az, 3.0, vec2(2.0, uTime * 0.012))) * 0.2;
+      c += auc * veil * rays * breathe * north * smoothstep(0.35, 0.65, na(az, 3.0, vec2(2.0, uTime * 0.012))) * ${HALLO ? '0.0' : '0.2'};${HALLO ? ' // Halloween: intet nordlys' : ''}
       // thin stratus bands near the horizon, lit pink on the sunset side
       float cl = na(az, 5.0, vec2(0.0, h * 26.0 + 3.0)) * na(az, 13.0, vec2(2.0, h * 60.0));
       float cm = smoothstep(0.3, 0.75, cl) * smoothstep(0.015, 0.06, h) * (1.0 - smoothstep(0.1, 0.22, h));
-      c = mix(c, mix(mid * 0.8, vec3(0.9, 0.42, 0.34), pow(s, 3.0)), cm * 0.55);
+      c = mix(c, mix(mid * 0.8, ${HALLO ? 'vec3(1.0, 0.45, 0.16)' : 'vec3(0.9, 0.42, 0.34)'}, pow(s, 3.0)), cm * 0.55);
       // a few thin, drifting moonlit clouds higher up
       vec2 cp = d.xz / (h + 0.12) * 1.1 + vec2(uTime * 0.004, uTime * 0.0015);
       float cn = n2(cp * 1.3) * 0.55 + n2(cp * 2.9 + 4.1) * 0.3 + n2(cp * 7.0 - 2.3) * 0.15;
       cn = smoothstep(0.52, 0.8, n2(vec2(cp.x * 0.35, cp.y * 1.4) + 7.0) * 0.5 + cn * 0.5) * smoothstep(0.07, 0.2, h) * (1.0 - smoothstep(0.55, 0.85, h));
       float mdc = max(dot(d, normalize(uMoon)), 0.0);
-      vec3 ccol = mix(vec3(0.05, 0.08, 0.2), vec3(0.42, 0.5, 0.72), pow(mdc, 10.0)) + vec3(0.5, 0.22, 0.2) * pow(s, 4.0) * (1.0 - smoothstep(0.1, 0.35, h));
+      vec3 ccol = ${HALLO ? 'mix(vec3(0.09, 0.035, 0.14), vec3(0.8, 0.55, 0.45), pow(mdc, 6.0))' : 'mix(vec3(0.05, 0.08, 0.2), vec3(0.42, 0.5, 0.72), pow(mdc, 10.0))'} + vec3(0.5, 0.22, 0.2) * pow(s, 4.0) * (1.0 - smoothstep(0.1, 0.35, h));
       // stars (hidden behind clouds)
       vec3 sp = d * 260.0; vec3 cell = floor(sp); float r = hash(cell);
       if (r > 0.988) { vec3 jo = vec3(hash(cell + 3.1), hash(cell + 7.7), hash(cell + 1.3)) - 0.5; float st = smoothstep(0.28, 0.0, length(fract(sp) - 0.5 - jo * 0.4)); float tw = 0.6 + 0.4 * sin(uTime * (1.5 + r * 3.0) + r * 90.0); float br = pow((r - 0.988) / 0.012, 3.0) * 2.2 + 0.35; c += mix(vec3(0.75, 0.85, 1.0), vec3(1.0, 0.9, 0.75), fract(r * 37.0)) * st * tw * br * smoothstep(0.06, 0.4, h) * (1.0 - cn) * (1.0 - 0.8 * pow(s, 3.0) * (1.0 - smoothstep(0.1, 0.5, h))); }
       // moon: big storybook disc with soft limb, maria, a warm-white glow and a faint icy halo ring
       float md = dot(d, normalize(uMoon));
       float ang = acos(clamp(md, -1.0, 1.0));
-      float R0 = 0.034;
+      float R0 = ${HALLO ? '0.062' : '0.034'};${HALLO ? ' // Halloween: stor, varm høstmåne' : ''}
       float disk = 1.0 - smoothstep(R0 - 0.0015, R0 + 0.0008, ang);
       vec3 mu = normalize(cross(normalize(uMoon), vec3(0.0, 1.0, 0.0))); vec3 mv = cross(mu, normalize(uMoon));
       vec2 mq = vec2(dot(d, mu), dot(d, mv)) / R0;
       float maria = smoothstep(0.45, 0.75, n2(mq * 2.3 + 3.0)) * 0.22 + smoothstep(0.5, 0.8, n2(mq * 5.0 - 1.0)) * 0.1;
       float limb = sqrt(max(1.0 - dot(mq, mq), 0.0));
-      vec3 moonC = vec3(1.0, 0.96, 0.86) * (1.55 + 0.6 * limb - maria * 1.4);
+      vec3 moonC = ${HALLO ? 'vec3(1.0, 0.84, 0.56) * (0.88 + 0.32 * limb - maria * 0.95)' : 'vec3(1.0, 0.96, 0.86) * (1.55 + 0.6 * limb - maria * 1.4)'};
       c = mix(c, moonC, disk);
-      c += vec3(0.55, 0.66, 1.0) * exp(-ang * 38.0) * 0.55 + vec3(0.25, 0.35, 0.75) * exp(-ang * 9.0) * 0.12;
+      c += ${HALLO ? 'vec3(1.0, 0.62, 0.3) * exp(-ang * 20.0) * 0.55 + vec3(0.55, 0.25, 0.6) * exp(-ang * 5.0) * 0.16' : 'vec3(0.55, 0.66, 1.0) * exp(-ang * 38.0) * 0.55 + vec3(0.25, 0.35, 0.75) * exp(-ang * 9.0) * 0.12'};
       float ringH = exp(-pow((ang - 0.2) / 0.018, 2.0));
       c += mix(vec3(0.9, 0.55, 0.4), vec3(0.45, 0.6, 1.0), smoothstep(0.19, 0.215, ang)) * ringH * 0.035;
       // clouds drawn over sky and moon glow (veil the moon slightly when they pass)
@@ -535,19 +592,20 @@ sky.frustumCulled = false; sky.renderOrder = -10; scene.add(sky);
   const envScene = new THREE.Scene();
   const envSky = new THREE.Mesh(new THREE.SphereGeometry(100, 32, 16), skyMat); envScene.add(envSky);
   // a warm band on the lower hemisphere = light bouncing from the lit village/snow; gives gold and ice some life
-  const warm = new THREE.Mesh(new THREE.SphereGeometry(90, 32, 8, 0, Math.PI * 2, Math.PI * 0.5, Math.PI * 0.5), new THREE.MeshBasicMaterial({ color: new THREE.Color().setRGB(0.22, 0.26, 0.42), side: THREE.BackSide }));
+  const warm = new THREE.Mesh(new THREE.SphereGeometry(90, 32, 8, 0, Math.PI * 2, Math.PI * 0.5, Math.PI * 0.5), new THREE.MeshBasicMaterial({ color: HALLO ? new THREE.Color().setRGB(0.3, 0.17, 0.3) : new THREE.Color().setRGB(0.22, 0.26, 0.42), side: THREE.BackSide }));
   envScene.add(warm);
   const env = pmrem.fromScene(envScene, 0.02).texture;
   scene.environment = env; scene.environmentIntensity = 0.7;
 }
 // Blue hour: cool moon key + blue sky fill, warm low sunset rim from the west
-const hemi = new THREE.HemisphereLight(col('#3f5fae'), col('#6f82bd'), 0.95); scene.add(hemi);
-const moon = new THREE.DirectionalLight(col('#a9c6ff'), 1.25);
+// Halloween: lilla himmellys, lavendelfarvet måneskin og et stærkere orange skær fra vest
+const hemi = HALLO ? new THREE.HemisphereLight(col('#5b4aa6'), col('#6e5c8c'), 0.95) : new THREE.HemisphereLight(col('#3f5fae'), col('#6f82bd'), 0.95); scene.add(hemi);
+const moon = new THREE.DirectionalLight(col(HALLO ? '#cfc4ff' : '#a9c6ff'), 1.25);
 moon.castShadow = true; moon.shadow.mapSize.set(2048, 2048);
 const SH = 32; Object.assign(moon.shadow.camera, { left: -SH, right: SH, top: SH, bottom: -SH, near: 1, far: 220 });
 moon.shadow.bias = -0.0004; moon.shadow.normalBias = 0.035; moon.shadow.radius = 3;
 scene.add(moon, moon.target);
-const sunset = new THREE.DirectionalLight(col('#ff9a60'), 0.3); sunset.position.copy(SUN_DIR).multiplyScalar(100); scene.add(sunset);
+const sunset = HALLO ? new THREE.DirectionalLight(col('#ff7a2a'), 0.5) : new THREE.DirectionalLight(col('#ff9a60'), 0.3); sunset.position.copy(SUN_DIR).multiplyScalar(100); scene.add(sunset);
 const MOON_LIGHT_DIR = new THREE.Vector3(0.35, 1.0, -0.45).normalize();
 HOOKS.render.push(() => { RIM_U.uRimL.value.copy(MOON_LIGHT_DIR).transformDirection(camera.matrixWorldInverse); });
 function updateShadowCam(p) {
@@ -669,7 +727,7 @@ function buildHorizon() {
     const m = new THREE.MeshBasicMaterial({ color: colr, alphaMap: t, transparent: true, depthWrite: false, fog: false, side: THREE.BackSide });
     const mesh = new THREE.Mesh(new THREE.CylinderGeometry(R, R, hgt, 96, 1, true), m); mesh.position.y = y0 + hgt / 2; mesh.renderOrder = -9; mesh.frustumCulled = false; scene.add(mesh); return mesh;
   };
-  const far = FOG_COLOR.clone().multiplyScalar(0.88).lerp(new THREE.Color().setRGB(0.2, 0.18, 0.36), 0.2);
+  const far = FOG_COLOR.clone().multiplyScalar(0.88).lerp(HALLO ? new THREE.Color().setRGB(0.22, 0.1, 0.28) : new THREE.Color().setRGB(0.2, 0.18, 0.36), 0.2);
   ring(450, 0, 260, far, 3, 0.35, 0.3, 0.035);
   ring(300, 0, 160, FOG_COLOR.clone().multiplyScalar(0.6), 7, 0.3, 0.35, 0.06);
 }
@@ -771,7 +829,7 @@ function pointBlocked(x, y, z) {
 // ═════════════════════════ SECTION: PARTICLES ═════════════════════════
 // Normal-blended particles (snow puffs, breath, smoke) are tinted by the ambient blue-hour light so they sit in the scene
 // instead of glowing; additive ones (sparks) keep their HDR colour and bloom.
-const PARTICLE_TINT = new THREE.Vector3(0.74, 0.82, 1.0);
+const PARTICLE_TINT = HALLO ? new THREE.Vector3(0.9, 0.78, 0.95) : new THREE.Vector3(0.74, 0.82, 1.0);
 class Particles {
   constructor(max, additive, tex = softTex) {
     this.max = max; this.n = 0;
@@ -869,6 +927,8 @@ const footprints = (() => {
 
 // ═════════════════════════ SECTION: AUDIO ═════════════════════════
 // Alt syntetiseres med WebAudio. Musik: "Jingle Bells" (J. Pierpont, 1857) og "Glade jul" / "Stille Nacht" (F. X. Gruber, 1818) - begge public domain.
+// Halloween (HALLO): "I Dovregubbens hal" (E. Grieg, 1875) under spillet og "Au clair de la lune" (fransk folkemelodi fra 1700-tallet,
+// som Saint-Saëns citerer i "Fossiler") i mol på titelskærmen og ved målet - alle public domain. Se makeHalloSongs.
 const NOTE_IDX = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 function noteF(n) { const m = /^([A-G])(#|b)?(-?\d)$/.exec(n); if (!m) return 0; const midi = 12 * (+m[3] + 1) + NOTE_IDX[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0); return 440 * Math.pow(2, (midi - 69) / 12); }
 function parseMel(str) { const a = str.trim().split(/\s+/); const out = []; let u = 0; for (let i = 0; i < a.length; i += 2) { const d = +a[i + 1]; if (a[i] !== 'R') out.push([u, noteF(a[i]), d]); u += d; } return { notes: out, len: u }; }
@@ -1028,6 +1088,7 @@ const Audio = {
   slurp() { const t = this.t; this.tone(2600, t, 0.08, { vol: 0.03, a: 0.002 }); this.tone(3400, t + 0.01, 0.05, { vol: 0.015 }); this.noise(t + 0.08, 0.18, 900, { vol: 0.05, f2: 2200, q: 1.5, a: 0.03 }); this.tone(210, t + 0.25, 0.35, { type: 'triangle', vol: 0.05, f2: 250, a: 0.04 }); },
   // ── musik ──
   makeSongs() {
+    if (HALLO) return this.makeHalloSongs(); // samme navne ('jingle' = spillet, 'silent' = titel/mål), så resten af koden er uændret
     // Jingle Bells: vers + omkvæd, 4/4, enhed = 1/8-node
     const verse = 'G4 1 E5 1 D5 1 C5 1 G4 3 G4 .5 G4 .5 G4 1 E5 1 D5 1 C5 1 A4 4 A4 1 F5 1 E5 1 D5 1 B4 4 G5 1 G5 1 F5 1 D5 1 E5 4 G4 1 E5 1 D5 1 C5 1 G4 4 G4 1 E5 1 D5 1 C5 1 A4 3 A4 1 A4 1 F5 1 E5 1 D5 1 G5 1 G5 1 G5 1 G5 1 A5 1 G5 1 F5 1 D5 1 C5 4';
     const chorus = 'E5 1 E5 1 E5 2 E5 1 E5 1 E5 2 E5 1 G5 1 C5 1.5 D5 .5 E5 4 F5 1 F5 1 F5 1.5 F5 .5 F5 1 E5 1 E5 1 E5 .5 E5 .5 E5 1 D5 1 D5 1 E5 1 D5 2 G5 2 E5 1 E5 1 E5 2 E5 1 E5 1 E5 2 E5 1 G5 1 C5 1.5 D5 .5 E5 4 F5 1 F5 1 F5 1.5 F5 .5 F5 1 E5 1 E5 1 E5 .5 E5 .5 G5 1 G5 1 F5 1 D5 1 C5 4';
@@ -1053,6 +1114,39 @@ const Audio = {
       if (inBar === 0 && bar % 4 === 0) A.fm(noteF(ch[0] + '5'), t, 2.2, 0.018, 3.5, 1.2, D);
     } };
     return { jingle, silent };
+  },
+  // ── Halloween-musik ──
+  makeHalloSongs() {
+    const HCH = { Am: ['A', 'C', 'E'], E: ['E', 'G#', 'B'], E7: ['E', 'G#', 'D'], Dm: ['D', 'F', 'A'] };
+    const bucket = (str) => { const m = parseMel(str), b = {}; for (const [u, f, d] of m.notes) (b[u] = b[u] || []).push([f, d]); return { b, len: m.len }; };
+    // I Dovregubbens hal: 4/4, enhed = 1/8-node, ca. 126 slag i minuttet. Temaet på A og på E (en kvint op), først lavt og listende,
+    // så en oktav højere med lidt fyldigere akkorder. Pizzicato-bas på grundtone og kvint og et lille "tik" som et ur.
+    const dovA = bucket('A3 1 B3 1 C4 1 D4 1 E4 1 C4 1 E4 2 D#4 1 B3 1 D#4 2 D4 1 Bb3 1 D4 2 A3 1 B3 1 C4 1 D4 1 E4 1 C4 1 E4 1 A4 1 G4 1 E4 1 C4 1 E4 1 G4 4');
+    const dovE = bucket('E4 1 F#4 1 G4 1 A4 1 B4 1 G4 1 B4 2 A#4 1 F#4 1 A#4 2 A4 1 F4 1 A4 2 E4 1 F#4 1 G4 1 A4 1 B4 1 G4 1 B4 1 E5 1 D5 1 B4 1 G4 1 B4 1 D5 4');
+    const DOV = [{ m: dovA, k: 1, r: 'A', q: 'E', ch: ['A', 'C', 'E'] }, { m: dovE, k: 1, r: 'E', q: 'B', ch: ['E', 'G', 'B'] }, { m: dovA, k: 2, r: 'A', q: 'E', ch: ['A', 'C', 'E'] }, { m: dovE, k: 2, r: 'E', q: 'B', ch: ['E', 'G', 'B'] }];
+    const dspu = 60 / 126 / 2;
+    const dovre = { spu: dspu, len: 32 * DOV.length, play: (A, u, t) => {
+      const D = A.mus, S = DOV[Math.floor(u / 32)], su = u % 32, inBar = su % 8, ev = S.m.b[su];
+      if (ev) for (const [f, d] of ev) { const ff = f * S.k; A.box(ff, t, Math.max(0.22, d * dspu * 1.15), S.k > 1 ? 0.1 : 0.12, D); if (S.k > 1) A.tone(ff / 2, t, Math.max(0.15, d * dspu * 0.8), { type: 'triangle', vol: 0.022, dest: D }); }
+      if (inBar % 2 === 0) A.bass(noteF((inBar % 4 === 0 ? S.r : S.q) + '2'), t, 0.26, 0.14, D);
+      else A.noise(t, 0.03, 2600, { q: 5, vol: 0.014, dest: D });
+      if (S.k > 1 && (inBar === 2 || inBar === 6)) S.ch.forEach((n, i) => A.box(noteF(n + '4'), t + i * 0.012, 0.25, 0.02, D));
+      if (su === 28) A.fm(noteF(S.r + '5'), t, 1.1, 0.02, 3.5, 1.3, D);
+    } };
+    // Au clair de la lune ("I måneskin"), i a-mol som en blid spilledåse: 4/4, enhed = 1/8-node. Form A A B A.
+    const phA = 'A4 2 A4 2 A4 2 B4 2 C5 4 B4 4 A4 2 C5 2 B4 2 B4 2 A4 8 ';
+    const lune = bucket(phA + phA + 'B4 2 B4 2 B4 2 B4 2 F4 4 F4 4 B4 2 A4 2 G#4 2 F4 2 E4 8 ' + phA);
+    const lch = ['Am', 'Am', 'Am', 'E', 'Am', 'E', 'Am', 'Am', 'Am', 'Am', 'Am', 'E', 'Am', 'E', 'Am', 'Am', 'E', 'E', 'Dm', 'Dm', 'E7', 'E7', 'E', 'E', 'Am', 'Am', 'Am', 'E', 'Am', 'E', 'Am', 'Am']; // én akkord pr. halve takt
+    const lspu = 0.29;
+    const maane = { spu: lspu, len: lune.len, play: (A, u, t) => {
+      const D = A.mus, ev = lune.b[u];
+      if (ev) for (const [f, d] of ev) { A.box(f, t, Math.max(0.9, d * lspu * 1.6), 0.11, D); A.tone(f / 2, t, d * lspu * 1.2, { type: 'triangle', vol: 0.022, a: 0.04, dest: D }); }
+      const half = Math.floor(u / 4), inH = u % 4, ch = HCH[lch[half % lch.length]];
+      if (inH === 0) { A.bass(noteF(ch[0] + '2'), t, 1.1, half % 2 === 0 ? 0.13 : 0.08, D); A.tone(noteF(ch[0] + '3'), t, 1.3, { vol: 0.012, a: 0.25, dest: D }); }
+      const arp = [null, ch[1] + '4', ch[2] + '4', ch[0] + '5'][inH]; if (arp) A.box(noteF(arp), t, 0.7, 0.026, D);
+      if (inH === 0 && half % 8 === 0) A.fm(noteF(ch[0] + '5'), t, 2.2, 0.018, 3.5, 1.2, D);
+    } };
+    return { jingle: dovre, silent: maane };
   },
   startMusic() { this.songs = this.makeSongs(); this.playSong(this.wantSong || 'jingle'); if (!this.timer) this.timer = setInterval(() => this.sched(), 50); },
   playSong(name) {
@@ -6715,7 +6809,9 @@ function frame() {
       camera.position.lerp(EATCAM.pos, w); camera.lookAt(tgt); if (EATCAM.w <= 0) EATCAM.pos = null;
     }
   } else if (GAME.state === 'title') {
-    const a = t * 0.06 + 0.4; camera.position.set(Math.sin(a) * 48, TOWER.top + 6 + Math.sin(t * 0.2) * 3, Math.cos(a) * 48); camera.lookAt(0, TOWER.top - 4, 0);
+    const a = t * 0.06 + 0.4;
+    if (HALLO) { camera.position.set(Math.sin(a) * 48, TOWER.top + 1 + Math.sin(t * 0.2) * 2, Math.cos(a) * 48); camera.lookAt(0, TOWER.top + 3, 0); } // Halloween: lidt mere himmel, så fuldmånen ses
+    else { camera.position.set(Math.sin(a) * 48, TOWER.top + 6 + Math.sin(t * 0.2) * 3, Math.cos(a) * 48); camera.lookAt(0, TOWER.top - 4, 0); }
     viking.root.position.copy(P.pos); viking.root.rotation.y = P.facing; anim.update(dt, P); for (const e of enemies) e.update(dt); updateCollectibles(dt, t);
     updateMovers(t); for (const m of movers) m.g.position.copy(m.cur);
   }
