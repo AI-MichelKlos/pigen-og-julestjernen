@@ -19,7 +19,7 @@ En Halloween-tvilling til "Pigen og Julestjernen" i samme spil, så man kan væl
 - [x] 3. Lys og pynt: orange og lilla lyskæder, græskarlygter langs stien og ved husene, spindelvæv og anden pynt i stedet for julepynt.
 - [x] 4. Gaver og mål: de fem gaver bliver til noget halloween-agtigt (for eksempel slikposer eller græskar), julekuglerne bliver til noget andet at samle, julestjernen på tårnet bliver til en stor, smilende græskarlygte, og ikonerne øverst og på minikortet følger med.
 - [x] 5. Figurer: heksehatte på rævene og bæverne, nissevennen bliver til et lille venligt spøgelse, nisserne i byen bliver udklædte, julemandens kane bliver til en heks på kost, og hoppesnemændene bliver til hoppegræskar.
-- [ ] 6. Aktiviteter: juletræet bliver til græskarlygter, der skal tændes, snemanden bliver til en fugleskræmsel, julekalenderen bliver til "slik eller ballade" ved husene, maden passer til Halloween, og julekortet bliver til et halloweenkort.
+- [x] 6. Aktiviteter: juletræet bliver til græskarlygter, der skal tændes, snemanden bliver til en fugleskræmsel, julekalenderen bliver til "slik eller ballade" ved husene, maden passer til Halloween, og julekortet bliver til et halloweenkort.
 - [ ] 7. Lyd og tekster: gå alle tekster, beskeder, nissevennens replikker og lyde igennem, så intet nævner jul i Halloween-udgaven.
 - [ ] 8. Afslutning: knapper på startskærmen til at vælge Jul eller Halloween, samlet afprøvning af begge udgaver, og læg det live.
 
@@ -121,3 +121,23 @@ Afprøvning:
 - Juleudgaven var helt ens med før (`fingerprint.js`), og landskabet i Halloween var ens med julens (`world.js`).
 - Figurer, der bevæger sig, kan følges med en lille render-hook: læg fx `G.HOOKS.render.push(() => { if (window.__follow) window.__follow(); })` i det første `"js"` i `VIEWS`, og sæt `window.__follow` til en funktion, der stiller kameraet. Skøjtenissen (`window.__AMB.SKATER`) er skjult, når kameraet er langt væk, så flyt pigen ned til søen først. Heksen startes med `window.__AMB.launchSleigh()`.
 - Startskærmen med månen: `window.__T = 7.3` og `test/titlecam.js` (skjul `#start` for at se flagermusene foran månen).
+
+### Skridt 6 (aktiviteter) - færdigt 2. oktober 2026
+
+Lavet:
+- Det store træ i byen (`bigChristmasTree`): vimpler i orange, lilla og grønt med en lille flagermus i stedet for dannebrogsflag, små hvide papirspøgelser i stedet for julehjerter (samme pladser), græskar i stedet for gaver under træet og ingen stjerne i toppen. Alle `rand()`-kald er de samme som i jul.
+- Græskarlygterne på træet (`lanternTree`, bruges af `XMAS_TREE` i Halloween): otte slukkede græskarlygter hænger på træet. Når pigen kommer til træet med bolsjer, flyver et bolsje hen til den næste lygte, som så lyser op. Når alle lyser, tænder den store græskarlygte i toppen, og der er fyrværkeri i orange, lilla og grønt. Minikortet viser et græskar i toppen af træet. `makeCandyPiece()` laver et bolsje.
+- Fugleskræmsel (`SNOWMAN` i Halloween, `SCARE`, `scareTufts`): man ruller to halmbolde og et græskar ind i ringen. Fugleskræmslet får ternet skjorte, reb om livet, halm der stikker ud, ærmer med halm og et lysende græskarhoved. Fire sæt tøj: heksehat, stråhat, troldmandshat og krans af blade. Skiltet hedder "BYG ET FUGLESKRÆMSEL".
+- De to pynt-snemænd (ved indgangen til byen og i vest) er fugleskræmsler med stråhat, ternet skjorte, græskarhoved og en lille krage på armen (`scarecrowDecor`). Kollisionen er den samme.
+- Slik eller ballade (`trickOrTreat`, bruges af `ADVENT` i Halloween): ved døren til de to huse kan man ringe på med mellemrum. Et venligt spøgelse kommer ud og giver fem bolsjer. Første gang i hus A: mønter og bolsjeregn. Første gang i hus B: alle hjerter fyldt op og et dansende spøgelse. Begge huse: fyrværkeri og stjernefest. Man kan ringe igen efter lidt tid og få lidt mere slik, eller "ballade" (konfetti). Tavlen på julekalenderens plads hedder "SLIK ELLER BALLADE" og viser de to huse, med et bolsje ved hvert hus, man har fået slik i.
+- Spøgelset er nu en fælles funktion (`makeGhost`), som både spøgelsesvennen og spøgelserne i dørene bruger.
+- Maden: græskarsuppe med en klat fløde i stuen (i stedet for risengrød) og spøgelsesboller med hvid glasur, chokoladeøjne og orange drys, chokoladesovs og varm kakao i køkkenet (i stedet for æbleskiver, syltetøj og gløgg). Teksterne (`FOOD_TXT`, `foodLabel`) følger med, og maden på pigens ske og gaffel har samme farver.
+- Halloweenkort (`XCARD`): knappen hedder "Halloweenkort", kortet er lilla med orange ramme, smilende græskar og flagermus i hjørnerne og teksten "Glædelig halloween" og "fra Pigen og Græskarlygten".
+
+Mangler (kommer i de næste skridt):
+- Skridt 7: lyde (kaneklokker og "ho ho ho" hos heksen), Nissen Nis' replikker, "Kom med nissevennen!", "Nisseven: til" i pausemenuen, "Hoppesnemand!", "Julehygge" ved 50 mønter og resten af teksterne.
+
+Afprøvning:
+- Juleudgaven var helt ens med før, og landskabet i Halloween var ens med julens.
+- Spillet kører meget langsomt i testbrowseren, når der sker meget. Ting, der tager et par sekunders spilletid (fx slik eller ballade), kan tage 5 til 10 minutter. Kør dem med `nohup ... &` i baggrunden og en lille skærm (fx bredde 480 og højde 270), og vent på `G.GAME.simT` i stedet for på uret.
+- I test: `window.__G.ADVENT.houses[i]` (dørene), `window.__G.XMAS_TREE.lamps` (græskarlygterne), `window.__G.SNOWMAN` og `window.__G.XCARD.open()`. Tryk på mellemrum kan efterlignes med `G.input.interactPressed = true`.
