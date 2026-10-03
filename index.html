@@ -1159,7 +1159,7 @@ const Audio = {
   splat() { const t = this.t; this.noise(t, 0.2, 1500, { type: 'lowpass', vol: 0.1 }); this.crunch(t, 4, 0.035, 1200); },
   gift() { const t = this.t; [1047, 1319, 1568, 2093, 2637].forEach((f, i) => { this.fm(f, t + i * 0.08, 0.9, 0.05, 3.5, 1.6); this.tone(f / 2, t + i * 0.08, 0.5, { type: 'triangle', vol: 0.03 }); }); this.bells(t, 1.3); },
   star() { const t = this.t; const seq = [523, 659, 784, 1047, 784, 1047, 1319, 1568]; seq.forEach((f, i) => { this.fm(f, t + i * 0.12, 1.1, 0.06, 3.5, 1.4); this.tone(f / 2, t + i * 0.12, 0.6, { type: 'triangle', vol: 0.05 }); });
-    [523, 659, 784, 1047].forEach(f => this.tone(f, t + 1.0, 2.2, { type: 'triangle', vol: 0.04, a: 0.05 })); this.bells(t, 2.8); },
+    [523, 659, 784, 1047].forEach(f => this.tone(f, t + 1.0, 2.2, { type: 'triangle', vol: 0.04, a: 0.05 })); if (HALLO) this.shimmer(t, 2.8); else this.bells(t, 2.8); },
   firework() { const t = this.t; this.noise(t, 0.7, 320, { type: 'lowpass', vol: 0.12 }); for (let i = 0; i < 8; i++) this.noise(t + 0.08 + Math.random() * 0.5, 0.03, 4000 + Math.random() * 3000, { q: 2, vol: 0.02 }); },
   launch() { const t = this.t; this.tone(700, t, 0.6, { vol: 0.012, f2: 1800, a: 0.05 }); },
   alert() { const t = this.t; this.tone(880, t, 0.08, { type: 'square', vol: 0.028 }); this.tone(1320, t + 0.07, 0.13, { type: 'square', vol: 0.028 }); },
@@ -1171,6 +1171,21 @@ const Audio = {
   secret() { const t = this.t; [392, 523, 659, 784, 988, 1175, 1568].forEach((f, i) => this.fm(f, t + i * 0.075, 0.8, 0.04, 2.5, 1.2)); this.tone(196, t, 1.2, { type: 'triangle', vol: 0.05, a: 0.05 }); },
   block() { const t = this.t; this.bump(); [784, 1047, 1319].forEach((f, i) => this.tone(f, t + 0.05 + i * 0.04, 0.2, { type: 'triangle', vol: 0.04 })); },
   talk() { const t = this.t; const f = 480 + Math.random() * 260; this.tone(f, t, 0.07, { type: 'triangle', vol: 0.03, f2: f * (Math.random() < 0.5 ? 1.2 : 0.85) }); },
+  // Halloween: heksens kost - et blødt sus med et lille magisk glimt (i stedet for kaneklokker)
+  broom(t, v) { const D = this.sleighBus; this.noise(t, 0.45, 900, { vol: v * 0.12, f2: 2600, q: 0.7, a: 0.12, dest: D }); if (Math.random() < 0.5) { const sc = [1760, 2093, 2349, 2637, 3136]; this.fm(sc[Math.floor(Math.random() * sc.length)], t + 0.1, 0.6, v * 0.025, 2.5, 1.2, D); } },
+  // Halloween: heksens glade lille fnis "hi-hi-hi" med en lys stemme (ikke uhyggelig)
+  hihi() {
+    const ctx = this.ctx; if (!ctx || ctx.state !== 'running') return; const t0 = this.t + 0.05;
+    for (let i = 0; i < 4; i++) {
+      const t = t0 + i * 0.17; const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(420 + i * 18, t); o.frequency.exponentialRampToValueAtTime(520 + i * 22, t + 0.1);
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.32, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.13);
+      for (const [ff, q, gv] of [[340, 5, 0.45], [2400, 9, 0.3], [3100, 8, 0.12]]) { const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = ff; bp.Q.value = q; const bg = ctx.createGain(); bg.gain.value = gv; o.connect(bp).connect(bg).connect(g); }
+      g.connect(this.sleighBus); o.start(t); o.stop(t + 0.15);
+      this.noise(t - 0.02, 0.05, 3000, { q: 0.8, vol: 0.04, dest: this.sleighBus });
+    }
+  },
+  // Halloween: magisk glimt (høje, bløde toner) i stedet for kaneklokker
+  shimmer(t, dur) { const sc = [1568, 1760, 2093, 2349, 2637, 3136], n = Math.round(dur * 9); for (let i = 0; i < n; i++) this.fm(sc[Math.floor(Math.random() * sc.length)], t + i / 9 + Math.random() * 0.03, 0.5, 0.03 * (1 - i / n), 2.5, 1.2); },
   pauseSnd() { const t = this.t; this.tone(784, t, 0.12, { type: 'triangle', vol: 0.05 }); this.tone(523, t + 0.1, 0.2, { type: 'triangle', vol: 0.05 }); },
   // ── nye lyde (runde 2) ──
   // blødt "glimt" nær en julegave: to høje klokketoner fra en pentaton skala
@@ -2944,7 +2959,7 @@ function activateLantern(L, quiet = false) {
   L.active = true; L.glass.material = lanternGlassOn; P.checkpoint.set(L.spawn.x, 0, L.spawn.z);
   for (const o of lanterns) o.current = (o === L);
   if (quiet) { L.k = 1; L.halo.scale.setScalar(2.2); return; }
-  const wp = L.lan.getWorldPosition(V3()); sparkleBurst(wp.x, wp.y, wp.z, 26, 1, 0.75, 0.35, 4); Audio.checkpoint(); toast('Checkpoint!', L.name ? `Lanternen ${L.name} er tændt` : 'Lanternen er tændt'); GAME.lanterns = (GAME.lanterns || 0) + 1;
+  const wp = L.lan.getWorldPosition(V3()); sparkleBurst(wp.x, wp.y, wp.z, 26, 1, 0.75, 0.35, 4); Audio.checkpoint(); (HALLO ? toast('Lanternen er tændt!', 'Hvis du falder, starter du her igen') : toast('Checkpoint!', L.name ? `Lanternen ${L.name} er tændt` : 'Lanternen er tændt')); GAME.lanterns = (GAME.lanterns || 0) + 1;
 }
 
 // ── Julestjernen ──
@@ -4965,7 +4980,7 @@ function pillar(x, z, top, w, d = w, type = 'stone', ry = 0) {
   R.forEach(([x, z, below, w, t, ry], k) => { const tp = Math.max(ct - below, terrainH(x, z) + 0.9); pillar(x, z, tp, w, w, t, ry); addCoin(x, tp + 0.9, z); R[k].tp = tp; });
   for (let k = 0; k < R.length - 1; k++) coinArc(R[k][0], R[k].tp + 0.9, R[k][1], R[k + 1][0], R[k + 1].tp + 0.9, R[k + 1][1], 1, 1.2);
   coinArc(R[4][0], R[4].tp + 0.9, R[4][1], top.x, ct + 0.9, top.z, 2, 1.3);
-  addGift(top.x, top.y, top.z, 2, 'på skorstenen på æbleskivehuset');
+  addGift(top.x, top.y, top.z, 2, HALLO ? 'på skorstenen på køkkenhuset' : 'på skorstenen på æbleskivehuset');
 }
 // ═ Gave 2 (søen): øen i den frosne sø
 addGift(ISLAND.x, LAKE.level + 1.3, ISLAND.z, 1, 'på øen i den frosne sø');
@@ -5026,7 +5041,19 @@ dirSign(-6.8, 14.8, [['Skoven', -Math.PI / 2 - 0.2, '#6a4a2c'], ['Søen', ANG(-1
 dirSign(5.8, 5.2, [['Himmelstien', ANG(1, -1.2), '#6a4a2c'], ['Kælkebakke', ANG(-5.8, -13), '#a0342c']]);
 
 // ═ Venner og fjender
-new Friend(-3.6, 55.6, ANG(3.6, 2.4), [
+new Friend(-3.6, 55.6, ANG(3.6, 2.4), HALLO ? [ // Halloween: Nissen Nis er klædt ud som græskar og hedder Græskar-Nis
+  'Hej med dig, lille heks! Glædelig halloween! Kan du lide mit græskarkostume?',
+  'Græskarlygten på toppen af Himmelbjergtårnet skal lyse for hele byen. Følg stien med lygterne derop!',
+  'Flagermusene har tabt fem slikposer: på platformene mod øst, på himmelstien, på skorstenen, på øen i søen og i vestskoven.',
+  () => GAME.gifts >= 5 ? 'Alle fem slikposer! Skynd dig op i tårnet til græskarlygten!' : `Du har fundet ${GAME.gifts} af 5 slikposer. Kompasset oppe i hjørnet viser vej til den nærmeste.`,
+  'Ring på dørene i husene. Så kommer der et venligt spøgelse ud med slik!',
+  'Hop tre gange i træk for at komme rigtig højt op. Og pas på bæverne - de kaster med snebolde!',
+  'Tænd lanternerne undervejs. Hvis du falder, starter du ved den sidste lanterne.',
+  'Kom med bolsjerne til det store træ. Så lyser græskarlygterne på træet!',
+  'Psst... der er gemt en lilla kasse i bladene her i byen. Find ringen af mønter og hop midt ned i den!',
+  'Bag tårnet ligger Kælkebakken! Og hop op på et hoppegræskar - hold hop nede, så flyver du helt til skyerne.',
+  'Ved tårnet står der to kælke - gå hen til en, så kører du ned ad bakken. Og nede ved Kælkebakken er der en lift, der trækker dig op igen!',
+] : [
   'Hej med dig, lille juleven! Glædelig jul!',
   'Julestjernen på toppen af Himmelbjergtårnet skal lyse for hele Danmark. Følg stien med lygterne derop!',
   'Nisserne har tabt fem julegaver: på platformene mod øst, på himmelstien, på skorstenen, på øen i søen og i vestskoven.',
@@ -5036,7 +5063,7 @@ new Friend(-3.6, 55.6, ANG(3.6, 2.4), [
   'Psst... der er gemt en gavekasse i sneen her i byen. Find ringen af mønter og hop midt ned i den!',
   'Bag tårnet ligger Kælkebakken! Og hop op på en hoppesnemand - hold hop nede, så flyver du helt til skyerne.',
   'Ved tårnet står der to kælke - gå hen til en, så kører du ned ad bakken. Og nede ved Kælkebakken er der en lift, der trækker dig op igen!',
-]);
+], HALLO ? 'Græskar-Nis' : undefined);
 for (const [x, z, r] of [[9, 29, 6], [-8, 21, 6], [14, 11, 5], [-14, 5, 6], [-40, 28, 5], [-35, 13, 5], [20, -4, 6], [-20, -20, 7], [28, 12, 6]]) enemies.push(new Enemy('fox', x, z, { range: r, leash: x === -20 ? 2 : undefined }));
 enemies.push(new Enemy('beaver', -34, -25, { patrol: [[-34, -25], [-38, -34], [-34, -25]] }));
 enemies.push(new Enemy('beaver', -58, -8, { patrol: [[-64, -8], [-52, -8]] }));
@@ -5183,7 +5210,7 @@ function doBounce(b) {
   P.vel.y = vy; P.grounded = false; P.coyote = 0; P.jumpBuf = 0; P.canCut = false; P.jumpCount = -1; P.chainT = 0; P.airCap = Math.max(CFG.runSpeed, Math.hypot(P.vel.x, P.vel.z));
   setState('triple'); anim.onJump(2); Audio.boing(pound || hold); b.hatTime = 0; SNOW_PLAY.hatFlights++; b.sq.x = 0.62; b.sq.v = 0; b.tipS.v = -30; b.cool = 0.2;
   snowPuff(b.pos.x, b.pos.y + 2.0, b.pos.z, 12, 2.6, 0.4); sparkleBurst(b.pos.x, b.pos.y + 2.1, b.pos.z, 8, 1, 0.5, 0.45, 3); CAM.shake = Math.max(CAM.shake, 0.12);
-  if (_bounceTips++ === 0) toast('Hoppesnemand!', 'Hold mellemrum nede for at komme endnu højere');
+  if (_bounceTips++ === 0) toast(HALLO ? 'Hoppegræskar!' : 'Hoppesnemand!', 'Hold mellemrum nede for at komme endnu højere');
 }
 // landsbyen: en hoppesnemand med en søjle af mønter over sig
 { const b = hoppeSnemand(4.6, 65.8, -0.3); for (let i = 0; i < 6; i++) addCoin(4.6, b.pos.y + 3.6 + i * 1.35, 65.8); }
@@ -5701,7 +5728,7 @@ addEventListener('pointerdown', _titleAudio); addEventListener('keydown', (e) =>
 
 function collectCoin(c) {
   c.alive = false; c.m.visible = false; GAME.coins++; $('coinN').textContent = GAME.coins; bumpPill('coinPill'); Audio.coin(); sparkleBurst(c.pos.x, c.pos.y, c.pos.z, 10, 1, 0.8, 0.25, 3);
-  if (GAME.coins % 50 === 0) { if (P.health < 3) { P.health++; updateHearts(); Audio.heart(); } toast(`${GAME.coins} mønter!`, P.health < 3 ? '' : 'Julehygge - du er fuld af liv'); }
+  if (GAME.coins % 50 === 0) { if (P.health < 3) { P.health++; updateHearts(); Audio.heart(); } toast(`${GAME.coins} mønter!`, P.health < 3 ? '' : (HALLO ? 'Halloweenhygge - du er fuld af liv' : 'Julehygge - du er fuld af liv')); }
 }
 function collectGift(g) {
   g.alive = false; g.t = 0; GAME.gifts++; $('giftN').textContent = GAME.gifts + '/5'; $('giftSlots').children[g.idx]?.classList.add('got'); bumpPill('giftPill'); Audio.gift();
@@ -6019,8 +6046,8 @@ HOOKS.update.push((dt, t, state) => {
     A.sleighBus.gain.setTargetAtTime(vol, now, 0.15);
     if (A.sleighPan) { const r = V3(); camera.getWorldDirection(r); const right = V3(-r.z, 0, r.x).normalize(); const to = V3().subVectors(S.pos, camera.position).setY(0).normalize(); A.sleighPan.pan.setTargetAtTime(clamp(to.dot(right) * 0.85, -0.85, 0.85), now, 0.15); }
     if (S.nb < now) S.nb = now + 0.02;
-    while (S.nb < now + 0.15) { A.jingle(S.nb, 0.9 + Math.random() * 0.3); const beat = Math.floor(S.nb * 7.4) % 4; S.nb += beat === 3 ? 0.2 : 0.085 + Math.random() * 0.02; }
-    if (!S.hoho && u > 0.42 && dist < 140) { S.hoho = true; A.hoho(); }
+    while (S.nb < now + 0.15) { if (HALLO) { A.broom(S.nb, 0.9 + Math.random() * 0.3); S.nb += 0.42 + Math.random() * 0.1; continue; } A.jingle(S.nb, 0.9 + Math.random() * 0.3); const beat = Math.floor(S.nb * 7.4) % 4; S.nb += beat === 3 ? 0.2 : 0.085 + Math.random() * 0.02; }
+    if (!S.hoho && u > 0.42 && dist < 140) { S.hoho = true; if (HALLO) A.hihi(); else A.hoho(); }
   }
 });
 
@@ -6297,7 +6324,7 @@ const GUIDE = (() => {
   const onStep = (s,p=P.pos) => Math.hypot(s.p.x-p.x,s.p.z-p.z)<1.05 && Math.abs(s.p.y-p.y)<0.65;
   const S={ enabled:true,root,marker,routes,route:null,path:[],index:0,stepIndex:-1,pos:V3(),from:V3(),u:1,duration:1,active:false,t:0,retry:0,lastTime:-1,announced:false,planOK:false };
   let toggle;
-  const setEnabled = enabled => { S.enabled=!!enabled;S.active=false;S.retry=0;root.visible=marker.visible=false;if(toggle){toggle.textContent='Nisseven: '+(S.enabled?'til':'fra');toggle.setAttribute('aria-pressed',String(S.enabled));} };
+  const setEnabled = enabled => { S.enabled=!!enabled;S.active=false;S.retry=0;root.visible=marker.visible=false;if(toggle){toggle.textContent=(HALLO?'Spøgelsesven: ':'Nisseven: ')+(S.enabled?'til':'fra');toggle.setAttribute('aria-pressed',String(S.enabled));} };
   const panel=document.querySelector('#pause .panel');
   if(panel){const row=document.createElement('div');row.style.marginTop='14px';toggle=document.createElement('button');toggle.className='btn small';toggle.id='guideToggle';toggle.type='button';toggle.addEventListener('click',e=>{e.stopPropagation();setEnabled(!S.enabled);});row.append(toggle);panel.append(row);setEnabled(true);}
   function chooseRoute() {
@@ -6364,7 +6391,7 @@ const GUIDE = (() => {
     if(!root.visible)return;
     S.t+=dt;S.retry-=dt;
     if(GAME.time<S.lastTime){S.active=false;S.announced=false;S.route=null;S.retry=0;}S.lastTime=GAME.time;
-    if(!S.announced&&GAME.time>3.7){S.announced=true;toast('Kom med nissevennen!','Han venter på dig ved det næste hop');}
+    if(!S.announced&&GAME.time>3.7){S.announced=true;if(HALLO)toast('Kom med spøgelsesvennen!','Det venter på dig ved det næste hop');else toast('Kom med nissevennen!','Han venter på dig ved det næste hop');}
     if(P.state==='eat'){marker.visible=false;return;}
     const target=S.path[S.index];
     const distant=target&&target.p.distanceTo(P.pos)>14;
@@ -6564,7 +6591,7 @@ const GIFT_SURPRISES = (() => {
 // These toys never change objectives, player physics, or collision geometry.
 const SNOW_PLAY = (() => {
   const drifts = [], white = M.snow;
-  const sparkleM = new THREE.MeshBasicMaterial({ color: '#bcecff' });
+  const sparkleM = new THREE.MeshBasicMaterial({ color: HALLO ? '#ffb060' : '#bcecff' }); // Halloween: et orange glimt i bladbunken i stedet for et blåt snefnug
   const snowBallGeo = SG(1, 16, 10);
   function clearPatch(x, z) {
     const surface = surfaceAt(x, z);
@@ -6608,7 +6635,7 @@ const SNOW_PLAY = (() => {
     snowPuff(P.pos.x, d.y + 0.12, P.pos.z, 28, 3.3, 0.43);
     for (let i = 0; i < 13; i++) puffs.spawn(P.pos.x + rr(-0.5, 0.5), P.pos.y + rr(0.15, 0.65), P.pos.z + rr(-0.5, 0.5), rr(-1.5, 1.5), rr(3.7, 6.2), rr(-1.5, 1.5), rr(0.8, 1.3), rr(0.08, 0.15), 1, 1, 1, 0.95, 6, 0.5, 0.3);
     if (Audio.ctx) Audio.boing(false);
-    if (!state.firstDrift) { state.firstDrift = true; toast('Sne på næsen!', 'Hop i den bløde sne igen'); }
+    if (!state.firstDrift) { state.firstDrift = true; if (HALLO) toast('Blade på næsen!', 'Hop i de bløde blade igen'); else toast('Sne på næsen!', 'Hop i den bløde sne igen'); }
   }
   HOOKS.physics.push(() => {
     if (GAME.state !== 'play') return;

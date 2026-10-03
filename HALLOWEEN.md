@@ -20,7 +20,7 @@ En Halloween-tvilling til "Pigen og Julestjernen" i samme spil, så man kan væl
 - [x] 4. Gaver og mål: de fem gaver bliver til noget halloween-agtigt (for eksempel slikposer eller græskar), julekuglerne bliver til noget andet at samle, julestjernen på tårnet bliver til en stor, smilende græskarlygte, og ikonerne øverst og på minikortet følger med.
 - [x] 5. Figurer: heksehatte på rævene og bæverne, nissevennen bliver til et lille venligt spøgelse, nisserne i byen bliver udklædte, julemandens kane bliver til en heks på kost, og hoppesnemændene bliver til hoppegræskar.
 - [x] 6. Aktiviteter: juletræet bliver til græskarlygter, der skal tændes, snemanden bliver til en fugleskræmsel, julekalenderen bliver til "slik eller ballade" ved husene, maden passer til Halloween, og julekortet bliver til et halloweenkort.
-- [ ] 7. Lyd og tekster: gå alle tekster, beskeder, nissevennens replikker og lyde igennem, så intet nævner jul i Halloween-udgaven.
+- [x] 7. Lyd og tekster: gå alle tekster, beskeder, nissevennens replikker og lyde igennem, så intet nævner jul i Halloween-udgaven.
 - [ ] 8. Afslutning: knapper på startskærmen til at vælge Jul eller Halloween, samlet afprøvning af begge udgaver, og læg det live.
 
 ## Noter til næste gang
@@ -141,3 +141,16 @@ Afprøvning:
 - Juleudgaven var helt ens med før, og landskabet i Halloween var ens med julens.
 - Spillet kører meget langsomt i testbrowseren, når der sker meget. Ting, der tager et par sekunders spilletid (fx slik eller ballade), kan tage 5 til 10 minutter. Kør dem med `nohup ... &` i baggrunden og en lille skærm (fx bredde 480 og højde 270), og vent på `G.GAME.simT` i stedet for på uret.
 - I test: `window.__G.ADVENT.houses[i]` (dørene), `window.__G.XMAS_TREE.lamps` (græskarlygterne), `window.__G.SNOWMAN` og `window.__G.XCARD.open()`. Tryk på mellemrum kan efterlignes med `G.input.interactPressed = true`.
+
+### Skridt 7 (lyd og tekster) - færdigt 3. oktober 2026
+
+Lavet:
+- Nissen Nis hedder Græskar-Nis i Halloween og har sine egne replikker (`new Friend(...)` i LEVEL LAYOUT): han fortæller om græskarlygten, slikposerne, "slik eller ballade", græskarlygterne på træet, den lilla kasse i bladene og hoppegræskarrene.
+- Beskeder: "Kom med spøgelsesvennen!", knappen "Spøgelsesven: til" i pausemenuen, "Hoppegræskar!", "Halloweenhygge" ved hver 50. mønt, "Blade på næsen!" i bladbunkerne (glimtet i bunken er orange), "Lanternen er tændt!" i stedet for "Checkpoint!" og slikposen på skorstenen "på køkkenhuset".
+- Lyde (AUDIO): heksen på kosten har et blødt sus med små magiske glimt (`broom`) i stedet for kaneklokker og et glad lille fnis (`hihi`) i stedet for "ho ho ho". Fanfaren, når man vinder, og når alle lygter lyser, har et magisk glimt (`shimmer`) i stedet for kaneklokker. Dørklokken passer fint til "slik eller ballade" og er beholdt.
+- Hele spillet er søgt igennem for ord som jul, nisse, sne, gave, kane, stjerne og kugle. Det, der er tilbage, bruges kun i juleudgaven (fx julekalenderens låger og juletræets beskeder) eller er interne navne, man ikke ser.
+- Bæverne kaster stadig snebolde, og søen er frossen. Det passer til frostnatten og er ikke jul, så de ord er beholdt.
+- Startteksten passer stadig: heksehat, spøgelsesven, fem slikposer, hoppegræskar og græskarlygten på tårnet.
+
+Mangler (skridt 8):
+- Knapper på startskærmen til at vælge Jul eller Halloween, en samlet afprøvning af begge udgaver, og så skal det lægges live.
