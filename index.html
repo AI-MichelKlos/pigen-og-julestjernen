@@ -101,6 +101,17 @@ kbd{display:inline-block;font-family:inherit;font-weight:700;font-size:13px;min-
 .tbtn{position:absolute;width:84px;height:84px;border-radius:50%;background:rgba(214,42,53,.55);border:3px solid rgba(255,255,255,.6);color:#fff;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;pointer-events:auto}
 #tjump{right:30px;bottom:50px}
 #tpound{right:130px;bottom:30px;width:64px;height:64px;background:rgba(40,70,160,.55)}
+/* temavalg på startskærmen: Jul eller Halloween */
+.tema{margin-top:18px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap;pointer-events:auto}
+.temaBtn{font-family:inherit;font-weight:700;font-size:20px;color:#fff;display:flex;align-items:center;gap:8px;padding:6px 16px 6px 10px;border-radius:40px;border:2px solid rgba(255,255,255,.4);background:rgba(10,16,48,.5);cursor:pointer;opacity:.78;transition:transform .15s,opacity .15s;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.temaBtn svg{width:30px;height:30px;flex:none}
+.temaBtn kbd{font-size:12px;min-width:20px;padding:1px 5px}
+.temaBtn:hover{opacity:1;transform:scale(1.05)}
+.temaBtn.on{opacity:1;border-color:#fff;background:linear-gradient(180deg,#ee4a55,#b81f2c);box-shadow:0 4px 0 #7d1019,0 8px 20px rgba(0,0,0,.35);cursor:default;transform:none}
+.tema.skifter{opacity:.5;pointer-events:none}
+[data-tema=halloween] .temaBtn{background:rgba(30,10,46,.55)}
+[data-tema=halloween] .temaBtn.on{background:linear-gradient(180deg,#ff9a3c,#e0610f);box-shadow:0 4px 0 #8a3500,0 8px 20px rgba(0,0,0,.35)}
+@media (max-height:640px){.tema{margin-top:10px}.temaBtn{font-size:17px;padding:4px 12px 4px 8px}.temaBtn svg{width:24px;height:24px}}
 @media (max-height:640px){.sub{margin-top:8px;font-size:15px}.btn{margin-top:14px;font-size:22px;padding:9px 32px}.keys{margin-top:12px;font-size:13px;gap:4px 14px;padding:9px 18px}.foot{margin-top:8px}.panel{padding:18px 30px 22px}.stats{margin-top:10px}}
 @media (min-width:1600px) and (min-height:860px){#hudL{top:22px;left:24px;gap:14px}#hudR{top:22px;right:24px;gap:14px}.pill{font-size:31px;padding:7px 20px 7px 9px;border-width:3px}.pill svg{width:40px;height:40px}.pill .of{font-size:20px}#giftSlots i{width:22px;height:22px;border-radius:5px}#giftSlots i.got::after{left:7px;height:22px;width:4px}#hearts svg{width:40px;height:40px}#compass{font-size:19px;padding:6px 18px 6px 6px;border-width:3px}#compDial{width:58px;height:58px}#compText small{font-size:15px}#toast{font-size:54px}#toast small{font-size:27px}#help{font-size:18px;padding:9px 22px}#bubble{font-size:21px;max-width:420px}#bubble b{font-size:16px}}
 @media (max-height:520px){#hudL,#hudR{top:8px;gap:6px}#hudL{left:10px}#hudR{right:10px}.pill{font-size:18px;padding:3px 10px 3px 4px}.pill svg{width:22px;height:22px}#giftSlots i{width:12px;height:12px;border-width:1.5px}#giftSlots i.got::after{left:3.5px;height:12px;width:2px;top:-1.5px}#hearts svg{width:22px;height:22px}#compass{font-size:13px;padding:3px 10px 3px 3px;gap:7px}#compDial{width:34px;height:34px}#compText small{font-size:11px}#toast{font-size:28px;top:15%}#toast small{font-size:15px}#help{font-size:12px;bottom:8px;padding:5px 12px}#bubble{font-size:14px;max-width:260px;padding:8px 12px 9px}}
@@ -112,6 +123,7 @@ kbd{display:inline-block;font-family:inherit;font-weight:700;font-size:13px;min-
 </script>
 <script>
 // TEMA: ?tema=halloween giver Halloween-udgaven "Pigen og Græskarlygten". Uden parameter er det juleudgaven, præcis som før.
+// Knapperne Jul og Halloween på startskærmen (og pil venstre/højre) genindlæser siden med det valgte tema.
 // Spillets kode læser window.TEMA (se HALLO i CONFIG & UTIL). Se også HALLOWEEN.md.
 window.TEMA = new URLSearchParams(location.search).get('tema') === 'halloween' ? 'halloween' : 'jul';
 if (window.TEMA === 'halloween') { document.documentElement.dataset.tema = 'halloween'; document.title = 'Pigen og Græskarlygten'; }
@@ -156,6 +168,10 @@ if (window.TEMA === 'halloween') { document.documentElement.dataset.tema = 'hall
   <svg class="titleStar" viewBox="0 0 100 100"><defs><radialGradient id="sg" cx="50%" cy="40%"><stop offset="0" stop-color="#fff6c8"/><stop offset=".55" stop-color="#ffd24a"/><stop offset="1" stop-color="#e59a00"/></radialGradient></defs><path d="M50 4l12.6 28.6 31 3.2-23.3 20.6 6.8 30.5L50 71.2 22.9 86.9l6.8-30.5L6.4 35.8l31-3.2z" fill="url(#sg)" stroke="#a86b00" stroke-width="3" stroke-linejoin="round"/><path d="M40 30l6-12" stroke="#fffbe6" stroke-width="4" stroke-linecap="round" opacity=".8"/></svg>
   <h1>Pigen<small>og</small><span class="gold">Julestjernen</span></h1>
   <p class="sub">Tag nissehuen på og gå på juleeventyr! Følg din nisseven, find fem gaver med sjove overraskelser, og leg med sneharer og hoppesnemænd. Julestjernen venter på toppen af tårnet.</p>
+  <div class="tema" id="temaVaelg" role="group" aria-label="Vælg jul eller halloween">
+    <button class="temaBtn" type="button" data-tema="jul"><kbd>←</kbd><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 4l12.6 28.6 31 3.2-23.3 20.6 6.8 30.5L50 71.2 22.9 86.9l6.8-30.5L6.4 35.8l31-3.2z" fill="#ffd24a" stroke="#a86b00" stroke-width="6" stroke-linejoin="round"/></svg>Jul</button>
+    <button class="temaBtn" type="button" data-tema="halloween"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 26c-1-9 2-15 9-18" stroke="#5b7f2a" stroke-width="7" fill="none" stroke-linecap="round"/><ellipse cx="31" cy="61" rx="23" ry="30" fill="#f7841e" stroke="#9a420a" stroke-width="3"/><ellipse cx="69" cy="61" rx="23" ry="30" fill="#f7841e" stroke="#9a420a" stroke-width="3"/><ellipse cx="50" cy="61" rx="21" ry="33" fill="#f7841e" stroke="#9a420a" stroke-width="3"/><path d="M27 56Q33 44 39 56Z M61 56Q67 44 73 56Z" fill="#ffe27a"/><path d="M30 67Q50 90 70 67Q50 78 30 67Z" fill="#ffe27a"/></svg>Halloween<kbd>→</kbd></button>
+  </div>
   <button class="btn" id="startBtn" disabled>Indlæser...</button>
   <div class="keys">
     <span class="main"><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd></span><span class="main"><b>Gå og løb</b></span>
@@ -174,6 +190,15 @@ if (window.TEMA === 'halloween') {
   s.querySelector('h1').innerHTML = 'Pigen<small>og</small><span class="gold">Græskarlygten</span>';
   s.querySelector('.sub').textContent = 'Tag heksehatten på og gå på halloweeneventyr i måneskin! Følg din spøgelsesven, find fem slikposer med sjove overraskelser, og leg med hoppegræskar. Græskarlygten venter på toppen af tårnet.';
 }
+// Temavalg: klik på Jul eller Halloween, eller tryk pil venstre (jul) eller pil højre (halloween) på startskærmen.
+// Siden genindlæses med det valgte tema (uden ?tema er det jul, med ?tema=halloween er det halloween).
+(() => {
+  const box = document.getElementById('temaVaelg'), start = document.getElementById('start');
+  box.querySelector('[data-tema="' + window.TEMA + '"]').classList.add('on');
+  const go = (t) => { if (t === window.TEMA || box.classList.contains('skifter')) return; const u = new URL(location.href); if (t === 'halloween') u.searchParams.set('tema', 'halloween'); else u.searchParams.delete('tema'); box.classList.add('skifter'); location.replace(u.toString()); };
+  box.addEventListener('click', (e) => { const b = e.target.closest('.temaBtn'); if (b) { e.stopPropagation(); go(b.dataset.tema); } });
+  addEventListener('keydown', (e) => { if (e.repeat || start.classList.contains('hidden')) return; if (e.code === 'ArrowLeft') go('jul'); else if (e.code === 'ArrowRight') go('halloween'); });
+})();
 </script>
 <div class="screen hidden" id="win">
   <div class="panel">

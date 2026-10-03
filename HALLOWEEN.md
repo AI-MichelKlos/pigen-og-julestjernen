@@ -2,9 +2,9 @@
 
 En Halloween-tvilling til "Pigen og Julestjernen" i samme spil, så man kan vælge mellem Jul og Halloween.
 
-- Indtil sidste skridt kan Halloween kun ses via linket med `?tema=halloween`:
-  https://ai-michelklos.github.io/pigen-og-julestjernen/?tema=halloween
-- Uden `?tema=halloween` skal juleudgaven se ud og virke præcis som før.
+- Man vælger Jul eller Halloween med knapperne på startskærmen (eller pil venstre og pil højre). Linket uden noget bagved åbner jul, og linket med `?tema=halloween` åbner Halloween direkte:
+  https://ai-michelklos.github.io/pigen-og-julestjernen/ og https://ai-michelklos.github.io/pigen-og-julestjernen/?tema=halloween
+- Juleudgaven ser ud og virker præcis som før Halloween-arbejdet (bortset fra de to knapper på startskærmen).
 - Landskab, huse, tårn, stier, kælkebakke, kælkelift, kælkene på bakkerne og minikortet beholdes. Kun temaet skifter.
 - Hyggelig uhygge for en 5-årig: venlige spøgelser, smilende græskar, flagermus, måneskin. Intet skræmmende.
 - Jorden er dækket af efterårsblade. Kælkebakken og søen forklares med "den første frostnat" (rimfrost og is).
@@ -21,7 +21,7 @@ En Halloween-tvilling til "Pigen og Julestjernen" i samme spil, så man kan væl
 - [x] 5. Figurer: heksehatte på rævene og bæverne, nissevennen bliver til et lille venligt spøgelse, nisserne i byen bliver udklædte, julemandens kane bliver til en heks på kost, og hoppesnemændene bliver til hoppegræskar.
 - [x] 6. Aktiviteter: juletræet bliver til græskarlygter, der skal tændes, snemanden bliver til en fugleskræmsel, julekalenderen bliver til "slik eller ballade" ved husene, maden passer til Halloween, og julekortet bliver til et halloweenkort.
 - [x] 7. Lyd og tekster: gå alle tekster, beskeder, nissevennens replikker og lyde igennem, så intet nævner jul i Halloween-udgaven.
-- [ ] 8. Afslutning: knapper på startskærmen til at vælge Jul eller Halloween, samlet afprøvning af begge udgaver, og læg det live.
+- [x] 8. Afslutning: knapper på startskærmen til at vælge Jul eller Halloween, samlet afprøvning af begge udgaver, og læg det live.
 
 ## Noter til næste gang
 
@@ -154,3 +154,19 @@ Lavet:
 
 Mangler (skridt 8):
 - Knapper på startskærmen til at vælge Jul eller Halloween, en samlet afprøvning af begge udgaver, og så skal det lægges live.
+
+### Skridt 8 (afslutning) - færdigt 3. oktober 2026
+
+Lavet:
+- Startskærmen har to knapper under teksten: "Jul" (med en stjerne) og "Halloween" (med et græskar). Det valgte tema er fremhævet. Man skifter ved at klikke på den anden knap eller trykke pil venstre (jul) eller pil højre (halloween). Siden genindlæses så med det valgte tema. Koden ligger i det lille script lige efter `#start`, og udseendet i CSS-reglerne `.tema` og `.temaBtn`.
+- Når man er i spillet, gør pilene det samme som før (knapperne virker kun på startskærmen).
+
+Samlet afprøvning:
+- Juleudgaven er sammenlignet med udgaven fra før Halloween-arbejdet (commit 8baa13e "Lille kort i hjørnet"): verden, materialer, shadere, lys, tåge, efterbehandling, tekster og musik er helt ens.
+- Landskabet (kasser, træer, terræn, mønter, gaver, kasser og julekugler) er ens i jul og Halloween.
+- I begge temaer: spillet starter, pigen hopper, samler en mønt og en gave eller slikpose, og målskærmen viser den rigtige tekst. Ingen fejl i browseren.
+- Temaskift med pil højre, pil venstre og klik er afprøvet. Startskærmen er set i 1366 x 768, 960 x 540 og på en smal skærm.
+
+Hvis der skal laves mere:
+- Alle Halloween-ændringer er gatet med `HALLO` i koden. Søg efter `HALLO` for at finde dem.
+- Brug `test/`-mappen som beskrevet under skridt 4 og 6. Sammenlign juleudgaven med den forrige udgave efter hver ændring.
